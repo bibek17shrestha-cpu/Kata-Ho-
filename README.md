@@ -1,4 +1,4 @@
-# Saathi Sawaari — Community Ride Board (v2)
+# Kata Ho? — Community Ride Board
 
 Now with accounts, separate rider/consumer dashboards, and in-app chat —
 no phone numbers shared, no fares, just neighbours closing a gap.
