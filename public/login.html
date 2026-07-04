@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — कता हो?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap-narrow">
+  <div class="card-box">
+    <h2>Welcome back</h2>
+    <label for="fEmail">Email</label>
+    <input id="fEmail" type="email" placeholder="you@example.com">
+    <label for="fPassword">Password</label>
+    <input id="fPassword" type="password" placeholder="Your password">
+    <div class="err" id="formErr"></div>
+    <button class="btn-primary" id="submitBtn" style="width:100%; margin-top:18px;">Log in</button>
+    <p class="sub" style="margin-top:14px; font-size:13.5px;">New here? <a href="/signup.html">Create an account</a></p>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script>
+(async function(){
+  const user = await getMe();
+  renderNav(user);
+  if (user) window.location.href = user.role === 'rider' ? '/rider.html' : '/consumer.html';
+})();
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const email = document.getElementById('fEmail').value.trim();
+  const password = document.getElementById('fPassword').value;
+  const errEl = document.getElementById('formErr');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    window.location.href = data.user.role === 'rider' ? '/rider.html' : '/consumer.html';
+  } catch (e) {
+    errEl.textContent = e.message;
+    btn.disabled = false; btn.textContent = 'Log in';
+  }
+});
+</script>
+</body>
+</html>
