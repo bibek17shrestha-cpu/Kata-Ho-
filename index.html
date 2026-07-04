@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saathi Sawaari — Community Ride Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">साथी सवारी <span class="dots"></span> community ride board</div>
+    <h1>Close the gap<br>between two points.</h1>
+    <p class="sub">Riders share their spare seats and availability. People who need a ride browse, see who's driving where, and chat right in the app — no fares, no phone numbers, just neighbours helping neighbours.</p>
+    <div class="trail-hero">
+      <svg viewBox="0 0 700 56" preserveAspectRatio="none">
+        <circle cx="18" cy="40" r="5" fill="#E8A33D"/>
+        <path d="M 18 40 C 120 8, 220 50, 340 26 S 560 4, 682 18" stroke="#E8A33D" stroke-width="1.5" stroke-dasharray="1 9" stroke-linecap="round" fill="none" opacity="0.85"/>
+        <circle cx="682" cy="18" r="5" fill="#3E7CB1"/>
+      </svg>
+    </div>
+    <div id="ctaArea" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="card-box">
+    <h2>How it works</h2>
+    <p class="sub" style="margin-top:8px;">
+      <b style="color:var(--marigold);">Riders</b> post when and where they're driving, with free seats.<br>
+      <b style="color:var(--marigold);">Riders in need</b> browse that list, see availability, and start a chat with anyone heading their way.
+    </p>
+  </div>
+
+  <footer>no fares change hands here — just neighbours closing a gap</footer>
+</div>
+<script src="js/common.js"></script>
+<script>
+(async function(){
+  const user = await getMe();
+  renderNav(user, '/');
+  const cta = document.getElementById('ctaArea');
+  if (user) {
+    cta.innerHTML = `<a class="btn-primary" style="text-decoration:none; display:inline-block;" href="${user.role === 'rider' ? '/rider.html' : '/consumer.html'}">Go to your dashboard</a>`;
+  } else {
+    cta.innerHTML = `<a class="btn-primary" style="text-decoration:none; display:inline-block;" href="/signup.html">Get started</a>
+                      <a class="btn-secondary" style="text-decoration:none; display:inline-block;" href="/login.html">Log in</a>`;
+  }
+})();
+</script>
+</body>
+</html>

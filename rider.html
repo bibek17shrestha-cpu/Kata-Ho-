@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rider Dashboard — Saathi Sawaari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">rider dashboard</div>
+    <h1>Your seats,<br>your schedule.</h1>
+    <p class="sub">Post when you're driving and how many seats you've got free. Anyone who needs a ride can find you and start a chat.</p>
+    <button class="btn-primary" id="openPost">+ Post availability</button>
+  </div>
+
+  <div class="toolbar">
+    <button class="pill active" data-tab="listings">My listings</button>
+    <button class="pill" data-tab="inbox">Chats</button>
+  </div>
+
+  <div id="listingsPane"><div class="loading">Loading…</div></div>
+  <div id="inboxPane" style="display:none;"><div class="loading">Loading…</div></div>
+
+  <footer>no fares change hands here — just neighbours closing a gap</footer>
+</div>
+
+<div id="postOverlay" class="overlay" style="display:none;">
+  <div class="modal">
+    <h2>Post your availability</h2>
+    <div class="sub" style="margin:4px 0 14px;">Everyone browsing the board will see this.</div>
+    <div class="row2">
+      <div><label for="fFrom">From</label><input id="fFrom" placeholder="e.g. Jackson Heights"></div>
+      <div><label for="fTo">To</label><input id="fTo" placeholder="e.g. JFK Airport"></div>
+    </div>
+    <div class="row2">
+      <div><label for="fDate">Date</label><input id="fDate" type="date"></div>
+      <div><label for="fTime">Time</label><input id="fTime" type="time"></div>
+    </div>
+    <label for="fSeats">Free seats</label>
+    <input id="fSeats" type="number" min="1" max="8" value="1">
+    <label for="fNote">Note (optional)</label>
+    <textarea id="fNote" placeholder="Flexible timing, luggage space, etc."></textarea>
+    <div class="err" id="formErr"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelPost" type="button">Cancel</button>
+      <button class="btn-primary" id="submitPost" type="button" style="flex:2;">Post</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/rider.js"></script>
+</body>
+</html>

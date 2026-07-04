@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find a ride — Saathi Sawaari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">find a ride</div>
+    <h1>Everyone driving,<br>all in one place.</h1>
+    <p class="sub">Every rider's current availability — where they're going, when, and how many seats are free. Tap a listing to start chatting.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="pill active" data-tab="browse">Browse riders</button>
+    <button class="pill" data-tab="inbox">My chats</button>
+    <div class="spacer"></div>
+    <input id="searchBox" placeholder="Search from or to…" style="max-width:180px;">
+  </div>
+
+  <div id="browsePane"><div class="loading">Loading riders…</div></div>
+  <div id="inboxPane" style="display:none;"><div class="loading">Loading…</div></div>
+
+  <footer>no fares change hands here — just neighbours closing a gap</footer>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/consumer.js"></script>
+</body>
+</html>
