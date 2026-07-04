@@ -51,6 +51,7 @@ function renderDrivers() {
         <span class="rider-name">${esc(d.name)}</span>
         <span class="status ${d.isAvailable ? 'avail' : 'closed'}">${d.isAvailable ? '● available' : '○ not available'}</span>
       </div>
+      ${d.contact ? `<div class="contact-line"><a href="tel:${esc(d.contact)}">${esc(d.contact)}</a></div>` : ''}
       ${d.vehicleInfo ? `<div class="note">${esc(d.vehicleInfo)}</div>` : ''}
       <div class="card-foot">
         <div class="actions">
@@ -164,7 +165,7 @@ document.getElementById('requestsPane').addEventListener('click', async (e) => {
       });
       const convo = await res.json();
       if (!res.ok) throw new Error(convo.error);
-      openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo);
+      openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo, convo.otherContact);
       loadInbox();
     } catch (err) {
       alert(err.message || 'Could not open chat.');
@@ -223,7 +224,7 @@ document.getElementById('browsePane').addEventListener('click', async (e) => {
     });
     const convo = await res.json();
     if (!res.ok) throw new Error(convo.error || 'Could not start chat.');
-    openChat(convo.id, me.id, btn.dataset.rider, btn.dataset.from, btn.dataset.to);
+    openChat(convo.id, me.id, btn.dataset.rider, btn.dataset.from, btn.dataset.to, convo.otherContact);
     loadInbox();
   } catch (err) {
     alert(err.message);
@@ -242,7 +243,7 @@ async function loadInbox() {
       return;
     }
     pane.innerHTML = myConvos.map(c => `
-      <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}">
+      <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}">
         <div>
           <div class="convo-name">${esc(c.otherName)}</div>
           <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
@@ -252,7 +253,7 @@ async function loadInbox() {
     `).join('');
     pane.querySelectorAll('.convo-row').forEach(row => {
       row.addEventListener('click', () => {
-        openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to);
+        openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact);
       });
     });
   } catch (e) {
