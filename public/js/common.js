@@ -43,6 +43,20 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// role: 'rider' (driver) or 'consumer' (passenger). Drivers get marigold,
+// passengers get sky-blue — a consistent color code used everywhere a
+// person's identity appears (directory, inbox, chat).
+function avatarHtml(name, role, size) {
+  const initial = (name || '?').trim().charAt(0).toUpperCase();
+  const cls = role === 'rider' ? 'avatar-driver' : 'avatar-passenger';
+  const sizeCls = size === 'sm' ? 'avatar-sm' : '';
+  return `<span class="avatar ${cls} ${sizeCls}">${esc(initial)}</span>`;
+}
+
+function roleLabel(role) {
+  return role === 'rider' ? 'Driver' : 'Passenger';
+}
+
 function fmtDate(dateStr, timeStr) {
   if (!dateStr) return 'Date TBD';
   const d = new Date(dateStr + 'T' + (timeStr || '00:00'));
@@ -84,7 +98,7 @@ function showToast(message, kind) {
 
 // ---- shared chat modal ---------------------------------------------------
 let chatPollTimer = null;
-let chatState = { conversationId: null, myId: null };
+let chatState = { conversationId: null, myId: null, otherRole: null };
 
 function ensureChatModal() {
   if (document.getElementById('chatOverlay')) return;
@@ -93,11 +107,18 @@ function ensureChatModal() {
   <div id="chatOverlay" class="overlay chat-modal" style="display:none;">
     <div class="modal">
       <div class="chat-header">
-        <h2 id="chatWithName">Chat</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="chatAvatar"></span>
+          <div>
+            <h2 id="chatWithName" style="margin:0;">Chat</h2>
+            <span class="role-tag" id="chatRoleTag"></span>
+          </div>
+        </div>
         <div class="contact-line" id="chatContact" style="display:none;"></div>
-        <div class="sub" id="chatRoute" style="margin:2px 0 0; font-size:13px;"></div>
+        <div class="sub" id="chatRoute" style="margin:6px 0 0; font-size:13px;"></div>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-seen" id="chatSeenIndicator" style="display:none;">seen</div>
       <div class="chat-input-row">
         <input id="chatInput" placeholder="Type a message…">
         <button class="btn-primary" id="chatSend">Send</button>
@@ -117,11 +138,15 @@ function ensureChatModal() {
   });
 }
 
-async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherContact) {
+async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherContact, otherRole) {
   ensureChatModal();
   chatState.conversationId = conversationId;
   chatState.myId = myId;
-  document.getElementById('chatWithName').textContent = 'Chat with ' + withName;
+  chatState.otherRole = otherRole || null;
+  document.getElementById('chatWithName').textContent = withName;
+  document.getElementById('chatAvatar').innerHTML = otherRole ? avatarHtml(withName, otherRole) : '';
+  document.getElementById('chatRoleTag').textContent = otherRole ? roleLabel(otherRole) : '';
+  document.getElementById('chatRoleTag').className = 'role-tag ' + (otherRole === 'rider' ? 'role-driver' : 'role-passenger');
   const contactEl = document.getElementById('chatContact');
   if (otherContact) {
     contactEl.innerHTML = `<a href="tel:${esc(otherContact)}">${esc(otherContact)}</a>`;
@@ -132,13 +157,24 @@ async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherC
   document.getElementById('chatRoute').textContent = rideFrom + ' → ' + rideTo;
   document.getElementById('chatOverlay').style.display = 'flex';
   await loadChatMessages();
+  await markConversationRead(conversationId);
   clearInterval(chatPollTimer);
-  chatPollTimer = setInterval(loadChatMessages, 4000);
+  chatPollTimer = setInterval(async () => {
+    await loadChatMessages();
+    await markConversationRead(conversationId);
+  }, 4000);
 }
 
 function closeChat() {
   document.getElementById('chatOverlay').style.display = 'none';
   clearInterval(chatPollTimer);
+  chatState = { conversationId: null, myId: null, otherRole: null };
+}
+
+async function markConversationRead(conversationId) {
+  try {
+    await fetch(`/api/conversations/${conversationId}/read`, { method: 'POST' });
+  } catch (e) { /* silent */ }
 }
 
 async function loadChatMessages() {
@@ -150,6 +186,7 @@ async function loadChatMessages() {
     const el = document.getElementById('chatMessages');
     if (msgs.length === 0) {
       el.innerHTML = `<div class="chat-empty">Say hello to start the conversation.</div>`;
+      document.getElementById('chatSeenIndicator').style.display = 'none';
       return;
     }
     const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
@@ -160,6 +197,20 @@ async function loadChatMessages() {
       el.scrollTop = el.scrollHeight;
       el.dataset.first = 'done';
     }
+
+    // "seen" indicator: only meaningful if the last message was mine
+    const lastMsg = msgs[msgs.length - 1];
+    const seenEl = document.getElementById('chatSeenIndicator');
+    try {
+      const convoRes = await fetch('/api/conversations');
+      const convos = await convoRes.json();
+      const thisConvo = convos.find(c => c.id === chatState.conversationId);
+      if (lastMsg.senderId === chatState.myId && thisConvo && thisConvo.seenByOther) {
+        seenEl.style.display = 'block';
+      } else {
+        seenEl.style.display = 'none';
+      }
+    } catch (e) { seenEl.style.display = 'none'; }
   } catch (e) { /* silent retry on next poll */ }
 }
 

@@ -144,7 +144,10 @@ function renderDrivers() {
   list.innerHTML = allDrivers.map(d => `
     <div class="card">
       <div class="card-top">
-        <span class="rider-name">${esc(d.name)}</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${avatarHtml(d.name, 'rider')}
+          <span class="rider-name">${esc(d.name)}</span>
+        </div>
         <span class="status ${d.isAvailable ? 'avail' : 'closed'}">${d.isAvailable ? '● available' : '○ not available'}</span>
       </div>
       ${d.contact ? `<div class="contact-line"><a href="tel:${esc(d.contact)}">${esc(d.contact)}</a></div>` : ''}
@@ -260,7 +263,7 @@ document.getElementById('requestsPane').addEventListener('click', async (e) => {
       });
       const convo = await res.json();
       if (!res.ok) throw new Error(convo.error);
-      openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo, convo.otherContact);
+      openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo, convo.otherContact, convo.otherRole);
       loadInbox();
     } catch (err) {
       alert(err.message || 'Could not open chat.');
@@ -319,7 +322,7 @@ document.getElementById('browsePane').addEventListener('click', async (e) => {
     });
     const convo = await res.json();
     if (!res.ok) throw new Error(convo.error || 'Could not start chat.');
-    openChat(convo.id, me.id, btn.dataset.rider, btn.dataset.from, btn.dataset.to, convo.otherContact);
+    openChat(convo.id, me.id, btn.dataset.rider, btn.dataset.from, btn.dataset.to, convo.otherContact, convo.otherRole);
     loadInbox();
   } catch (err) {
     alert(err.message);
@@ -346,17 +349,19 @@ function renderInboxList() {
     return;
   }
   pane.innerHTML = myConvos.map(c => `
-    <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}">
-      <div>
-        <div class="convo-name">${esc(c.otherName)}</div>
+    <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}" data-role="${esc(c.otherRole || '')}">
+      ${avatarHtml(c.otherName, c.otherRole)}
+      <div style="flex:1;">
+        <div class="convo-name">${esc(c.otherName)} <span class="role-tag ${c.otherRole === 'rider' ? 'role-driver' : 'role-passenger'}">${roleLabel(c.otherRole)}</span></div>
         <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
       </div>
+      ${c.unreadCount > 0 ? `<span class="unread-badge">${c.unreadCount > 9 ? '9+' : c.unreadCount}</span>` : ''}
       <span class="btn-secondary">Open chat</span>
     </div>
   `).join('');
   pane.querySelectorAll('.convo-row').forEach(row => {
     row.addEventListener('click', () => {
-      openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact);
+      openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact, row.dataset.role);
     });
   });
 }
