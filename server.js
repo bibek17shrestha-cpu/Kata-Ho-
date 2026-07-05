@@ -418,6 +418,32 @@ async function enrichConversation(c, userId) {
     const { rows } = await pool.query('SELECT from_place, to_place FROM ride_requests WHERE id = $1', [c.ride_request_id]);
     if (rows[0]) { routeFrom = rows[0].from_place; routeTo = rows[0].to_place; }
   }
+
+  const { rows: myReadRows } = await pool.query(
+    'SELECT last_read_at FROM conversation_reads WHERE conversation_id = $1 AND user_id = $2',
+    [c.id, userId]
+  );
+  const myLastRead = myReadRows[0] ? Number(myReadRows[0].last_read_at) : 0;
+
+  const { rows: theirReadRows } = await pool.query(
+    'SELECT last_read_at FROM conversation_reads WHERE conversation_id = $1 AND user_id = $2',
+    [c.id, otherId]
+  );
+  const theirLastRead = theirReadRows[0] ? Number(theirReadRows[0].last_read_at) : 0;
+
+  const { rows: unreadRows } = await pool.query(
+    'SELECT COUNT(*)::int AS count FROM messages WHERE conversation_id = $1 AND sender_id != $2 AND created_at > $3',
+    [c.id, userId, myLastRead]
+  );
+  const unreadCount = unreadRows[0] ? unreadRows[0].count : 0;
+
+  const { rows: lastMsgRows } = await pool.query(
+    'SELECT sender_id, created_at FROM messages WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 1',
+    [c.id]
+  );
+  const lastMessage = lastMsgRows[0];
+  const seenByOther = !!(lastMessage && lastMessage.sender_id === userId && Number(lastMessage.created_at) <= theirLastRead);
+
   return {
     id: c.id,
     rideId: c.ride_id,
@@ -426,9 +452,12 @@ async function enrichConversation(c, userId) {
     consumerId: c.consumer_id,
     otherName: other ? other.name : 'Unknown',
     otherContact: other ? other.contact : '',
+    otherRole: c.rider_id === userId ? 'consumer' : 'rider',
     rideFrom: routeFrom,
     rideTo: routeTo,
-    createdAt: Number(c.created_at)
+    createdAt: Number(c.created_at),
+    unreadCount,
+    seenByOther
   };
 }
 
@@ -545,6 +574,20 @@ app.post('/api/conversations/:id/messages', requireAuth, requireConversationAcce
       [id, req.params.id, req.user.id, bodyEncrypted, iv, authTag, now]
     );
     res.status(201).json({ id, senderId: req.user.id, body, createdAt: now });
+  } catch (err) { next(err); }
+});
+
+// Mark a conversation as read up to now, for unread counts + seen receipts.
+app.post('/api/conversations/:id/read', requireAuth, requireConversationAccess, async (req, res, next) => {
+  try {
+    const now = Date.now();
+    await pool.query(
+      `INSERT INTO conversation_reads (conversation_id, user_id, last_read_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (conversation_id, user_id) DO UPDATE SET last_read_at = $3`,
+      [req.params.id, req.user.id, now]
+    );
+    res.json({ ok: true, readAt: now });
   } catch (err) { next(err); }
 });
 
