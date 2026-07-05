@@ -22,6 +22,7 @@
     <button class="pill" data-tab="browse">Fixed routes</button>
     <button class="pill" data-tab="requests">My requests</button>
     <button class="pill" data-tab="inbox">My chats</button>
+    <button class="pill" data-tab="profile">Profile</button>
   </div>
 
   <div id="driversPane">
@@ -44,6 +45,20 @@
   <div id="browsePane" style="display:none;"><div class="loading">Loading…</div></div>
   <div id="requestsPane" style="display:none;"><div class="loading">Loading…</div></div>
   <div id="inboxPane" style="display:none;"><div class="loading">Loading…</div></div>
+
+  <div id="profilePane" style="display:none;">
+    <div class="card-box" style="margin-top:0;">
+      <h2>Your profile</h2>
+      <div class="sub" style="margin:6px 0 14px; font-size:13.5px;">Your contact is only shared with a driver once you're chatting — not shown publicly.</div>
+      <label for="pName">Name</label>
+      <input id="pName" placeholder="Your name">
+      <label for="pContact">Contact (phone, WhatsApp, etc.)</label>
+      <input id="pContact" placeholder="Shown to the driver you chat with">
+      <div class="err" id="profileErr"></div>
+      <div class="ok" id="profileOk" style="display:none;">Profile updated</div>
+      <button class="btn-primary" id="saveProfile" style="margin-top:12px;">Save profile</button>
+    </div>
+  </div>
 
   <footer>no fares change hands here — just neighbours closing a gap</footer>
 </div>
