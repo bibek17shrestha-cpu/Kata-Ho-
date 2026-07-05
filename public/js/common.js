@@ -18,11 +18,23 @@ function renderNav(user, activeBrandHref) {
     <a class="brand" href="${brandHref}">कता हो?</a>
     <div class="spacer"></div>
     ${user
-      ? `<span class="user-pill">${esc(user.name)} · ${user.role === 'rider' ? 'driver' : 'passenger'}</span><button id="logoutBtn">Log out</button>`
+      ? `<span class="nav-bell" id="navBell" style="display:none;">🔔<span class="nav-bell-count" id="navBellCount">0</span></span><span class="user-pill">${esc(user.name)} · ${user.role === 'rider' ? 'driver' : 'passenger'}</span><button id="logoutBtn">Log out</button>`
       : `<a href="/login.html">Log in</a><a href="/signup.html">Sign up</a>`}
   `;
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
+}
+
+function setNavBellCount(count) {
+  const bell = document.getElementById('navBell');
+  const countEl = document.getElementById('navBellCount');
+  if (!bell || !countEl) return;
+  if (count > 0) {
+    countEl.textContent = count > 9 ? '9+' : String(count);
+    bell.style.display = 'inline-flex';
+  } else {
+    bell.style.display = 'none';
+  }
 }
 
 function esc(s) {
@@ -45,6 +57,29 @@ function trailSvg() {
     <line x1="4" y1="7" x2="196" y2="7" stroke="#E8A33D" stroke-width="1.3" stroke-dasharray="1 7" stroke-linecap="round" opacity="0.75"/>
     <circle cx="196" cy="7" r="3" fill="#3E7CB1"/>
   </svg>`;
+}
+
+// ---- toast notifications ---------------------------------------------
+function ensureToastContainer() {
+  if (document.getElementById('toastContainer')) return;
+  const div = document.createElement('div');
+  div.id = 'toastContainer';
+  div.style.cssText = 'position:fixed; top:16px; right:16px; z-index:200; display:flex; flex-direction:column; gap:10px; max-width:320px;';
+  document.body.appendChild(div);
+}
+
+function showToast(message, kind) {
+  ensureToastContainer();
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast-item' + (kind ? ' toast-' + kind : '');
+  toast.textContent = message;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 4500);
 }
 
 // ---- shared chat modal ---------------------------------------------------

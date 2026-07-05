@@ -3,6 +3,8 @@ let allDrivers = [];
 let allRides = [];
 let myRequests = [];
 let myConvos = [];
+let seenRequestStatuses = {};
+let seenConvoMessageCounts = {};
 
 (async function init() {
   me = await getMe();
@@ -15,7 +17,69 @@ let myConvos = [];
   await loadRides();
   await loadMyRequests();
   await loadInbox();
+  // seed "seen" state so we only notify on changes *after* first load
+  myRequests.forEach(r => { seenRequestStatuses[r.id] = r.status; });
+  await primeSeenMessageCounts();
+  setInterval(pollForUpdates, 5000);
 })();
+
+async function primeSeenMessageCounts() {
+  for (const c of myConvos) {
+    try {
+      const res = await fetch(`/api/conversations/${c.id}/messages`);
+      const msgs = await res.json();
+      seenConvoMessageCounts[c.id] = msgs.length;
+    } catch (e) { /* ignore */ }
+  }
+}
+
+async function pollForUpdates() {
+  let notifCount = 0;
+
+  try {
+    const res = await fetch('/api/my-ride-requests');
+    const fresh = await res.json();
+    fresh.forEach(r => {
+      const prevStatus = seenRequestStatuses[r.id];
+      if (prevStatus && prevStatus !== r.status) {
+        if (r.status === 'accepted') showToast(`Your ride request was accepted! ${r.from} → ${r.to}`, 'success');
+        else if (r.status === 'declined') showToast(`A driver declined your request: ${r.from} → ${r.to}`);
+      }
+      seenRequestStatuses[r.id] = r.status;
+      if (r.status === 'accepted') notifCount++;
+    });
+    myRequests = fresh;
+    if (document.getElementById('requestsPane').style.display !== 'none') renderMyRequests();
+  } catch (e) { /* silent */ }
+
+  try {
+    const res = await fetch('/api/conversations');
+    const fresh = await res.json();
+    for (const c of fresh) {
+      try {
+        const msgRes = await fetch(`/api/conversations/${c.id}/messages`);
+        const msgs = await msgRes.json();
+        const prevCount = seenConvoMessageCounts[c.id] ?? msgs.length;
+        if (msgs.length > prevCount) {
+          const last = msgs[msgs.length - 1];
+          if (last.senderId !== me.id) {
+            showToast(`New message from ${c.otherName}`);
+            notifCount++;
+          }
+        }
+        seenConvoMessageCounts[c.id] = msgs.length;
+      } catch (e) { /* ignore this convo */ }
+    }
+    myConvos = fresh;
+    if (document.getElementById('inboxPane').style.display !== 'none') {
+      if (!document.getElementById('chatOverlay') || document.getElementById('chatOverlay').style.display !== 'flex') {
+        renderInboxList();
+      }
+    }
+  } catch (e) { /* silent */ }
+
+  setNavBellCount(notifCount);
+}
 
 document.querySelectorAll('.pill').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -269,25 +333,30 @@ async function loadInbox() {
   try {
     const res = await fetch('/api/conversations');
     myConvos = await res.json();
-    if (myConvos.length === 0) {
-      pane.innerHTML = `<div class="empty">No conversations yet.</div>`;
-      return;
-    }
-    pane.innerHTML = myConvos.map(c => `
-      <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}">
-        <div>
-          <div class="convo-name">${esc(c.otherName)}</div>
-          <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
-        </div>
-        <span class="btn-secondary">Open chat</span>
-      </div>
-    `).join('');
-    pane.querySelectorAll('.convo-row').forEach(row => {
-      row.addEventListener('click', () => {
-        openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact);
-      });
-    });
+    renderInboxList();
   } catch (e) {
     pane.innerHTML = `<div class="empty">Couldn't load your chats.</div>`;
   }
+}
+
+function renderInboxList() {
+  const pane = document.getElementById('inboxPane');
+  if (myConvos.length === 0) {
+    pane.innerHTML = `<div class="empty">No conversations yet.</div>`;
+    return;
+  }
+  pane.innerHTML = myConvos.map(c => `
+    <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}">
+      <div>
+        <div class="convo-name">${esc(c.otherName)}</div>
+        <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
+      </div>
+      <span class="btn-secondary">Open chat</span>
+    </div>
+  `).join('');
+  pane.querySelectorAll('.convo-row').forEach(row => {
+    row.addEventListener('click', () => {
+      openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact);
+    });
+  });
 }
