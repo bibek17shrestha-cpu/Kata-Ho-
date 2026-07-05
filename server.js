@@ -134,6 +134,24 @@ app.get('/api/me', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------
+// profile (name + contact) — shared by both roles
+// ---------------------------------------------------------------------
+app.patch('/api/profile', requireAuth, async (req, res, next) => {
+  try {
+    const { name, contact } = req.body;
+    if (!name || !contact) {
+      return res.status(400).json({ error: 'Name and contact are required.' });
+    }
+    await pool.query(
+      'UPDATE users SET name = $1, contact = $2 WHERE id = $3',
+      [String(name).trim().slice(0, 80), String(contact).trim().slice(0, 120), req.user.id]
+    );
+    const updated = await findUserById(req.user.id);
+    res.json({ user: publicUser(updated) });
+  } catch (err) { next(err); }
+});
+
+// ---------------------------------------------------------------------
 // driver availability + profile
 // ---------------------------------------------------------------------
 app.get('/api/driver-profile', requireAuth, async (req, res, next) => {
@@ -155,10 +173,10 @@ app.patch('/api/driver-profile', requireAuth, async (req, res, next) => {
 
     await pool.query(
       `INSERT INTO driver_profiles (user_id, vehicle_info, is_available, updated_at)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, COALESCE($2::text, ''), COALESCE($3::boolean, false), $4)
        ON CONFLICT (user_id) DO UPDATE SET
-         vehicle_info = COALESCE($2, driver_profiles.vehicle_info),
-         is_available = COALESCE($3, driver_profiles.is_available),
+         vehicle_info = COALESCE($2::text, driver_profiles.vehicle_info),
+         is_available = COALESCE($3::boolean, driver_profiles.is_available),
          updated_at = $4`,
       [
         req.user.id,
@@ -167,7 +185,8 @@ app.patch('/api/driver-profile', requireAuth, async (req, res, next) => {
         Date.now()
       ]
     );
-    res.json({ ok: true });
+    const { rows } = await pool.query('SELECT * FROM driver_profiles WHERE user_id = $1', [req.user.id]);
+    res.json({ vehicleInfo: rows[0].vehicle_info, isAvailable: rows[0].is_available });
   } catch (err) { next(err); }
 });
 
