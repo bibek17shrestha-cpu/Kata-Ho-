@@ -197,4 +197,25 @@ footer{text-align:center; font-size:12px; color:#7789A8; margin-top:40px; font-f
 }
 .contact-line a:hover{text-decoration:underline;}
 
+/* toast notifications */
+.toast-item{
+  background:#1B2A4A; border:1px solid var(--marigold); border-radius:12px;
+  padding:14px 16px; font-size:13.5px; color:var(--paper); box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  opacity:0; transform:translateX(20px); transition:opacity .25s ease, transform .25s ease;
+}
+.toast-item.show{opacity:1; transform:translateX(0);}
+.toast-item.toast-success{border-color:#4E8B5C;}
+
+/* nav notification bell */
+.nav-bell{
+  position:relative; font-size:16px; margin-right:6px; cursor:default;
+  display:inline-flex; align-items:center;
+}
+.nav-bell-count{
+  position:absolute; top:-6px; right:-10px; background:var(--marigold); color:var(--sky-deep);
+  font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700;
+  border-radius:999px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center;
+  padding:0 4px;
+}
+
 @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
