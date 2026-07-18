@@ -12,6 +12,7 @@ let seenConvoMessageCounts = {};
   if (me.role !== 'rider') { window.location.href = '/consumer.html'; return; }
   document.getElementById('pName').value = me.name;
   document.getElementById('pContact').value = me.contact || '';
+  document.getElementById('pGender').value = me.gender || 'unspecified';
   await loadDriverProfile();
   await loadIncomingRequests();
   await loadMyRides();
@@ -20,6 +21,15 @@ let seenConvoMessageCounts = {};
   seenRequestIds = new Set(incomingRequests.map(r => r.id));
   await primeSeenMessageCounts();
   setInterval(pollForUpdates, 5000);
+
+  const notifBtn = document.getElementById('enableNotifBtn');
+  const status = await getPushSubscriptionStatus();
+  if (status === 'subscribed') { notifBtn.textContent = '🔔 Notifications on'; notifBtn.disabled = true; }
+  else if (status === 'unsupported') { notifBtn.style.display = 'none'; }
+  notifBtn.addEventListener('click', async () => {
+    const ok = await enablePushNotifications();
+    if (ok) { notifBtn.textContent = '🔔 Notifications on'; notifBtn.disabled = true; }
+  });
 })();
 
 async function primeSeenMessageCounts() {
@@ -94,6 +104,7 @@ document.querySelectorAll('.pill').forEach(btn => {
 document.getElementById('saveProfile').addEventListener('click', async () => {
   const name = document.getElementById('pName').value.trim();
   const contact = document.getElementById('pContact').value.trim();
+  const gender = document.getElementById('pGender').value;
   const errEl = document.getElementById('profileErr');
   const okEl = document.getElementById('profileOk');
   errEl.textContent = ''; okEl.style.display = 'none';
@@ -105,7 +116,7 @@ document.getElementById('saveProfile').addEventListener('click', async () => {
   try {
     const res = await fetch('/api/profile', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, contact })
+      body: JSON.stringify({ name, contact, gender })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Something went wrong.');
@@ -235,7 +246,7 @@ document.getElementById('requestsPane').addEventListener('click', async (e) => {
       });
       const convo = await convoRes.json();
       if (convoRes.ok) {
-        openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo, convo.otherContact, convo.otherRole);
+        openChat(convo.id, me.id, convo.otherName, convo.rideFrom, convo.rideTo, convo.otherContact, convo.otherRole, convo.otherGender);
       }
     }
     await loadIncomingRequests();
@@ -326,8 +337,8 @@ function renderInboxList() {
     return;
   }
   pane.innerHTML = myConvos.map(c => `
-    <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}" data-role="${esc(c.otherRole || '')}">
-      ${avatarHtml(c.otherName, c.otherRole)}
+    <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}" data-role="${esc(c.otherRole || '')}" data-gender="${esc(c.otherGender || '')}">
+      ${avatarHtml(c.otherName, c.otherRole, null, c.otherGender)}
       <div style="flex:1;">
         <div class="convo-name">${esc(c.otherName)} <span class="role-tag ${c.otherRole === 'rider' ? 'role-driver' : 'role-passenger'}">${roleLabel(c.otherRole)}</span></div>
         <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
@@ -338,7 +349,7 @@ function renderInboxList() {
   `).join('');
   pane.querySelectorAll('.convo-row').forEach(row => {
     row.addEventListener('click', () => {
-      openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact, row.dataset.role);
+      openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact, row.dataset.role, row.dataset.gender);
     });
   });
 }

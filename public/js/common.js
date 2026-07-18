@@ -43,14 +43,23 @@ function esc(s) {
   return d.innerHTML;
 }
 
-// role: 'rider' (driver) or 'consumer' (passenger). Drivers get marigold,
-// passengers get sky-blue — a consistent color code used everywhere a
-// person's identity appears (directory, inbox, chat).
-function avatarHtml(name, role, size) {
-  const initial = (name || '?').trim().charAt(0).toUpperCase();
+// role: 'rider' (driver) or 'consumer' (passenger). Drivers always show a
+// car icon (marigold background). Passengers show a gendered emoji based on
+// their profile gender — falls back to a neutral person icon if unspecified.
+function avatarHtml(name, role, size, gender) {
+  let icon;
+  if (role === 'rider') {
+    icon = '🚗';
+  } else if (gender === 'male') {
+    icon = '👱\u200d♂️';
+  } else if (gender === 'female') {
+    icon = '💁\u200d♀️';
+  } else {
+    icon = '👤';
+  }
   const cls = role === 'rider' ? 'avatar-driver' : 'avatar-passenger';
   const sizeCls = size === 'sm' ? 'avatar-sm' : '';
-  return `<span class="avatar ${cls} ${sizeCls}">${esc(initial)}</span>`;
+  return `<span class="avatar ${cls} ${sizeCls}">${icon}</span>`;
 }
 
 function roleLabel(role) {
@@ -138,13 +147,13 @@ function ensureChatModal() {
   });
 }
 
-async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherContact, otherRole) {
+async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherContact, otherRole, otherGender) {
   ensureChatModal();
   chatState.conversationId = conversationId;
   chatState.myId = myId;
   chatState.otherRole = otherRole || null;
   document.getElementById('chatWithName').textContent = withName;
-  document.getElementById('chatAvatar').innerHTML = otherRole ? avatarHtml(withName, otherRole) : '';
+  document.getElementById('chatAvatar').innerHTML = otherRole ? avatarHtml(withName, otherRole, null, otherGender) : '';
   document.getElementById('chatRoleTag').textContent = otherRole ? roleLabel(otherRole) : '';
   document.getElementById('chatRoleTag').className = 'role-tag ' + (otherRole === 'rider' ? 'role-driver' : 'role-passenger');
   const contactEl = document.getElementById('chatContact');
@@ -228,5 +237,71 @@ async function sendChatMessage() {
     await loadChatMessages();
   } catch (e) {
     input.value = body;
+  }
+}
+
+// ---- push notifications ---------------------------------------------
+// Real phone/OS-level notifications with sound, delivered even when the
+// tab or browser is closed. Requires the person to tap "Enable
+// notifications" once (browsers require a user gesture + explicit
+// permission — this can't be turned on silently).
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+
+async function getPushSubscriptionStatus() {
+  if (!(await pushSupported())) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return 'not-subscribed';
+    const sub = await reg.pushManager.getSubscription();
+    return sub ? 'subscribed' : 'not-subscribed';
+  } catch (e) {
+    return 'not-subscribed';
+  }
+}
+
+async function enablePushNotifications() {
+  if (!(await pushSupported())) {
+    showToast("Push notifications aren't supported on this browser.");
+    return false;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('Notifications were not enabled.');
+      return false;
+    }
+    const keyRes = await fetch('/api/push/vapid-public-key');
+    const { key } = await keyRes.json();
+    if (!key) {
+      showToast('Push notifications are not configured yet.');
+      return false;
+    }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key)
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    showToast('Notifications enabled!', 'success');
+    return true;
+  } catch (e) {
+    showToast('Could not enable notifications.');
+    return false;
   }
 }
