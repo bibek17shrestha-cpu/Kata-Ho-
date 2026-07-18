@@ -14,15 +14,110 @@ function renderNav(user, activeBrandHref) {
   const nav = document.getElementById('nav');
   if (!nav) return;
   const brandHref = activeBrandHref || (user ? (user.role === 'rider' ? '/rider.html' : '/consumer.html') : '/');
+
   nav.innerHTML = `
-    <a class="brand" href="${brandHref}">कता हो?</a>
-    <div class="spacer"></div>
+    ${user ? `<button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu"><span></span><span></span><span></span></button>` : `<div style="width:36px;"></div>`}
+    <a class="brand brand-center" href="${brandHref}">कता हो?</a>
     ${user
-      ? `<span class="nav-bell" id="navBell" style="display:none;">🔔<span class="nav-bell-count" id="navBellCount">0</span></span><span class="user-pill">${esc(user.name)} · ${user.role === 'rider' ? 'driver' : 'passenger'}</span><button id="logoutBtn">Log out</button>`
-      : `<a href="/login.html">Log in</a><a href="/signup.html">Sign up</a>`}
+      ? `<span class="nav-bell" id="navBell" style="display:none;">🔔<span class="nav-bell-count" id="navBellCount">0</span>
+           <div class="notif-dropdown" id="notifDropdown"></div>
+         </span>`
+      : `<div class="nav-guest-links"><a href="/login.html">Log in</a><a href="/signup.html">Sign up</a></div>`}
   `;
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
+
+  if (user) {
+    buildSideMenu(user);
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    hamburgerBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSideMenu(); });
+
+    const bell = document.getElementById('navBell');
+    bell.addEventListener('click', (e) => { e.stopPropagation(); toggleNotifDropdown(); });
+    document.addEventListener('click', () => { closeNotifDropdown(); });
+  }
+}
+
+// ---- hamburger side menu ---------------------------------------------
+function buildSideMenu(user) {
+  if (document.getElementById('sideMenuOverlay')) document.getElementById('sideMenuOverlay').remove();
+
+  const isDriver = user.role === 'rider';
+  const menuItems = isDriver
+    ? [
+        { label: 'Chats', tab: 'inbox', icon: '💬' },
+        { label: 'Profile', tab: 'profile', icon: '👤' }
+      ]
+    : [
+        { label: 'Fixed routes', tab: 'browse', icon: '🛣️' },
+        { label: 'My requests', tab: 'requests', icon: '📋' },
+        { label: 'Chats', tab: 'inbox', icon: '💬' },
+        { label: 'Profile', tab: 'profile', icon: '👤' }
+      ];
+
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="sideMenuOverlay" class="side-menu-overlay">
+      <div class="side-menu" id="sideMenu">
+        <div class="side-menu-header">
+          <div class="side-menu-user">
+            ${avatarHtml(user.name, user.role, null, user.gender)}
+            <div>
+              <div class="side-menu-name">${esc(user.name)}</div>
+              <div class="side-menu-role">${roleLabel(user.role)}</div>
+            </div>
+          </div>
+          <button class="side-menu-close" id="sideMenuClose" aria-label="Close menu">✕</button>
+        </div>
+        <div class="side-menu-items">
+          ${menuItems.map(item => `
+            <button class="side-menu-item" data-tab="${item.tab}">
+              <span class="side-menu-icon">${item.icon}</span> ${esc(item.label)}
+            </button>
+          `).join('')}
+        </div>
+        <div class="side-menu-footer">
+          <button class="side-menu-item side-menu-logout" id="sideMenuLogout">
+            <span class="side-menu-icon">🚪</span> Log out
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div.firstElementChild);
+
+  document.getElementById('sideMenuClose').addEventListener('click', closeSideMenu);
+  document.getElementById('sideMenuOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'sideMenuOverlay') closeSideMenu();
+  });
+  document.getElementById('sideMenuLogout').addEventListener('click', logout);
+  document.querySelectorAll('.side-menu-item[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabBtn = document.querySelector(`.pill[data-tab="${btn.dataset.tab}"]`);
+      if (tabBtn) tabBtn.click();
+      closeSideMenu();
+    });
+  });
+}
+
+function toggleSideMenu() {
+  const overlay = document.getElementById('sideMenuOverlay');
+  if (!overlay) return;
+  if (overlay.classList.contains('open')) closeSideMenu();
+  else openSideMenu();
+}
+
+function openSideMenu() {
+  const overlay = document.getElementById('sideMenuOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.getElementById('hamburgerBtn').classList.add('active');
+}
+
+function closeSideMenu() {
+  const overlay = document.getElementById('sideMenuOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  const btn = document.getElementById('hamburgerBtn');
+  if (btn) btn.classList.remove('active');
 }
 
 function setNavBellCount(count) {
@@ -35,6 +130,62 @@ function setNavBellCount(count) {
   } else {
     bell.style.display = 'none';
   }
+}
+
+// ---- notification store: each item is {id, text, tab, read} -------------
+let notifications = [];
+
+function addNotification(text, tab) {
+  notifications.unshift({ id: 'n' + Date.now() + Math.random().toString(36).slice(2, 6), text, tab, read: false, at: Date.now() });
+  if (notifications.length > 20) notifications = notifications.slice(0, 20);
+  renderNotifBadgeAndList();
+}
+
+function renderNotifBadgeAndList() {
+  const unreadCount = notifications.filter(n => !n.read).length;
+  setNavBellCount(unreadCount);
+
+  const dropdown = document.getElementById('notifDropdown');
+  if (!dropdown) return;
+  if (notifications.length === 0) {
+    dropdown.innerHTML = `<div class="notif-empty">No notifications yet.</div>`;
+    return;
+  }
+  dropdown.innerHTML = notifications.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}" data-tab="${esc(n.tab || '')}">
+      ${esc(n.text)}
+    </div>
+  `).join('');
+  dropdown.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const notif = notifications.find(x => x.id === el.dataset.id);
+      if (notif) notif.read = true;
+      if (el.dataset.tab) {
+        const tabBtn = document.querySelector(`.pill[data-tab="${el.dataset.tab}"]`);
+        if (tabBtn) tabBtn.click();
+      }
+      closeNotifDropdown();
+      renderNotifBadgeAndList();
+    });
+  });
+}
+
+function toggleNotifDropdown() {
+  const dropdown = document.getElementById('notifDropdown');
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('show');
+  if (isOpen) {
+    closeNotifDropdown();
+  } else {
+    renderNotifBadgeAndList();
+    dropdown.classList.add('show');
+  }
+}
+
+function closeNotifDropdown() {
+  const dropdown = document.getElementById('notifDropdown');
+  if (dropdown) dropdown.classList.remove('show');
 }
 
 function esc(s) {
