@@ -3,12 +3,26 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const path = require('path');
+const webpush = require('web-push');
 const { pool, initSchema } = require('./lib/db');
 const { encrypt, decrypt } = require('./lib/crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const COOKIE_NAME = 'saathi_session';
+
+// Web Push (real phone/browser notifications, even when the tab is closed).
+// VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are a matched key pair — generate
+// once with: node -e "console.log(require('web-push').generateVAPIDKeys())"
+// and set both as environment variables in Render. Push simply won't work
+// (fails silently, rest of the app is unaffected) until both are set.
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails('mailto:support@kataho.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+} else {
+  console.error('Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY — push notifications are disabled until both are set.');
+}
 
 app.use(express.json());
 app.use(cookieParser());
@@ -18,8 +32,34 @@ function newId(bytes = 8) {
   return crypto.randomBytes(bytes).toString('hex');
 }
 
+// Sends a push notification to every device a user has subscribed on.
+// Silently no-ops if VAPID isn't configured or the user has no subscriptions.
+// Dead subscriptions (410/404 from the push service, e.g. uninstalled PWA)
+// are cleaned up automatically.
+async function sendPushToUser(userId, payload) {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+  try {
+    const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
+    for (const sub of rows) {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth }
+      };
+      try {
+        await webpush.sendNotification(pushSubscription, JSON.stringify(payload));
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Push send failed:', err.message);
+  }
+}
+
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role, contact: u.contact };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, contact: u.contact, gender: u.gender };
 }
 
 async function findUserById(id) {
@@ -64,7 +104,7 @@ async function startSession(res, userId) {
 // ---------------------------------------------------------------------
 app.post('/api/signup', async (req, res, next) => {
   try {
-    const { name, email, password, role, contact } = req.body;
+    const { name, email, password, role, contact, gender } = req.body;
     if (!name || !email || !password || !role || !contact) {
       return res.status(400).json({ error: 'All fields are required, including a contact method.' });
     }
@@ -74,6 +114,7 @@ app.post('/api/signup', async (req, res, next) => {
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     }
+    const genderNorm = (gender === 'male' || gender === 'female') ? gender : 'unspecified';
 
     const emailNorm = String(email).trim().toLowerCase();
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [emailNorm]);
@@ -84,9 +125,9 @@ app.post('/api/signup', async (req, res, next) => {
     const id = newId();
     const passwordHash = bcrypt.hashSync(password, 10);
     await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role, contact, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, String(name).trim().slice(0, 80), emailNorm, passwordHash, role, String(contact).trim().slice(0, 120), Date.now()]
+      `INSERT INTO users (id, name, email, password_hash, role, contact, gender, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, String(name).trim().slice(0, 80), emailNorm, passwordHash, role, String(contact).trim().slice(0, 120), genderNorm, Date.now()]
     );
 
     if (role === 'rider') {
@@ -138,13 +179,14 @@ app.get('/api/me', async (req, res, next) => {
 // ---------------------------------------------------------------------
 app.patch('/api/profile', requireAuth, async (req, res, next) => {
   try {
-    const { name, contact } = req.body;
+    const { name, contact, gender } = req.body;
     if (!name || !contact) {
       return res.status(400).json({ error: 'Name and contact are required.' });
     }
+    const genderNorm = (gender === 'male' || gender === 'female' || gender === 'unspecified') ? gender : req.user.gender;
     await pool.query(
-      'UPDATE users SET name = $1, contact = $2 WHERE id = $3',
-      [String(name).trim().slice(0, 80), String(contact).trim().slice(0, 120), req.user.id]
+      'UPDATE users SET name = $1, contact = $2, gender = $3 WHERE id = $4',
+      [String(name).trim().slice(0, 80), String(contact).trim().slice(0, 120), genderNorm, req.user.id]
     );
     const updated = await findUserById(req.user.id);
     res.json({ user: publicUser(updated) });
@@ -336,6 +378,15 @@ app.post('/api/ride-requests', requireAuth, async (req, res, next) => {
     );
     const { rows } = await pool.query('SELECT * FROM ride_requests WHERE id = $1', [id]);
     res.status(201).json(requestRow(rows[0]));
+
+    if (driverId) {
+      sendPushToUser(driverId, {
+        title: `New ride request from ${req.user.name}`,
+        body: `${from} → ${to}`,
+        tag: 'request-' + id,
+        url: '/rider.html'
+      });
+    }
   } catch (err) { next(err); }
 });
 
@@ -401,6 +452,16 @@ app.patch('/api/ride-requests/:id', requireAuth, async (req, res, next) => {
 
     const updated = await pool.query('SELECT * FROM ride_requests WHERE id = $1', [request.id]);
     res.json(requestRow(updated.rows[0]));
+
+    if (status === 'accepted' || status === 'declined') {
+      const driver = await findUserById(req.user.id);
+      sendPushToUser(request.consumer_id, {
+        title: status === 'accepted' ? 'Your ride request was accepted!' : 'A driver declined your request',
+        body: `${request.from_place} → ${request.to_place}${driver ? ' — ' + driver.name : ''}`,
+        tag: 'request-status-' + request.id,
+        url: '/consumer.html'
+      });
+    }
   } catch (err) { next(err); }
 });
 
@@ -453,6 +514,7 @@ async function enrichConversation(c, userId) {
     otherName: other ? other.name : 'Unknown',
     otherContact: other ? other.contact : '',
     otherRole: c.rider_id === userId ? 'consumer' : 'rider',
+    otherGender: other ? other.gender : 'unspecified',
     rideFrom: routeFrom,
     rideTo: routeTo,
     createdAt: Number(c.created_at),
@@ -574,6 +636,14 @@ app.post('/api/conversations/:id/messages', requireAuth, requireConversationAcce
       [id, req.params.id, req.user.id, bodyEncrypted, iv, authTag, now]
     );
     res.status(201).json({ id, senderId: req.user.id, body, createdAt: now });
+
+    const recipientId = req.convo.rider_id === req.user.id ? req.convo.consumer_id : req.convo.rider_id;
+    sendPushToUser(recipientId, {
+      title: `New message from ${req.user.name}`,
+      body: body.slice(0, 100),
+      tag: 'chat-' + req.params.id,
+      url: '/' + (req.convo.rider_id === recipientId ? 'rider.html' : 'consumer.html')
+    });
   } catch (err) { next(err); }
 });
 
@@ -588,6 +658,37 @@ app.post('/api/conversations/:id/read', requireAuth, requireConversationAccess, 
       [req.params.id, req.user.id, now]
     );
     res.json({ ok: true, readAt: now });
+  } catch (err) { next(err); }
+});
+
+// ---------------------------------------------------------------------
+// push notifications
+// ---------------------------------------------------------------------
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ key: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', requireAuth, async (req, res, next) => {
+  try {
+    const { endpoint, keys } = req.body || {};
+    if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
+      return res.status(400).json({ error: 'Invalid push subscription.' });
+    }
+    await pool.query(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = $2, p256dh = $4, auth = $5`,
+      [newId(6), req.user.id, endpoint, keys.p256dh, keys.auth, Date.now()]
+    );
+    res.status(201).json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/push/unsubscribe', requireAuth, async (req, res, next) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (endpoint) await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 
