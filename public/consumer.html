@@ -15,6 +15,7 @@
     <div class="eyebrow">find a ride</div>
     <h1>Everyone driving,<br>all in one place.</h1>
     <p class="sub">Browse every driver, see who's available right now, and request a ride to anywhere — or pick from a fixed route someone's already posted.</p>
+    <button class="btn-secondary" id="enableNotifBtn" style="margin-top:4px;">🔔 Enable notifications</button>
   </div>
 
   <div class="toolbar">
@@ -54,6 +55,12 @@
       <input id="pName" placeholder="Your name">
       <label for="pContact">Contact (phone, WhatsApp, etc.)</label>
       <input id="pContact" placeholder="Shown to the driver you chat with">
+      <label for="pGender">Gender</label>
+      <select id="pGender">
+        <option value="unspecified">Prefer not to say</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
       <div class="err" id="profileErr"></div>
       <div class="ok" id="profileOk" style="display:none;">Profile updated</div>
       <button class="btn-primary" id="saveProfile" style="margin-top:12px;">Save profile</button>

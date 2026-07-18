@@ -29,6 +29,13 @@
     <label for="fContact">Contact (phone, WhatsApp, etc.)</label>
     <input id="fContact" placeholder="Shown to whoever you're matched with">
 
+    <label for="fGender">Gender</label>
+    <select id="fGender">
+      <option value="unspecified">Prefer not to say</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+
     <label for="fPassword">Password</label>
     <input id="fPassword" type="password" placeholder="At least 6 characters">
 
@@ -59,6 +66,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = document.getElementById('fName').value.trim();
   const email = document.getElementById('fEmail').value.trim();
   const contact = document.getElementById('fContact').value.trim();
+  const gender = document.getElementById('fGender').value;
   const password = document.getElementById('fPassword').value;
   const errEl = document.getElementById('formErr');
   errEl.textContent = '';
@@ -74,7 +82,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const res = await fetch('/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, role, contact })
+      body: JSON.stringify({ name, email, password, role, contact, gender })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Something went wrong.');

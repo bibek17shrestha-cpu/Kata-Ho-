@@ -197,6 +197,33 @@ footer{text-align:center; font-size:12px; color:#7789A8; margin-top:40px; font-f
 }
 .contact-line a:hover{text-decoration:underline;}
 
+/* avatars: icon-coded by role — car for drivers, gendered person for passengers */
+.avatar{
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:40px; height:40px; border-radius:50%; font-size:19px; line-height:1;
+}
+.avatar-sm{width:30px; height:30px; font-size:15px;}
+.avatar-driver{background:rgba(232,163,61,0.22); border:1px solid rgba(232,163,61,0.5);}
+.avatar-passenger{background:rgba(62,124,177,0.22); border:1px solid rgba(62,124,177,0.5);}
+
+.role-tag{
+  font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.05em; padding:2px 7px; border-radius:999px; vertical-align:middle; margin-left:4px;
+}
+.role-driver{background:rgba(232,163,61,0.18); color:var(--marigold); border:1px solid rgba(232,163,61,0.4);}
+.role-passenger{background:rgba(62,124,177,0.2); color:#7EB4DE; border:1px solid rgba(62,124,177,0.45);}
+
+.unread-badge{
+  background:var(--marigold); color:#0E1830; font-family:'JetBrains Mono', monospace; font-weight:700;
+  font-size:11px; min-width:20px; height:20px; border-radius:999px; display:flex; align-items:center;
+  justify-content:center; padding:0 5px; flex-shrink:0;
+}
+
+.chat-seen{
+  text-align:right; font-family:'JetBrains Mono', monospace; font-size:11px; color:#7789A8;
+  padding:2px 4px 8px;
+}
+
 /* toast notifications */
 .toast-item{
   background:#1B2A4A; border:1px solid var(--marigold); border-radius:12px;

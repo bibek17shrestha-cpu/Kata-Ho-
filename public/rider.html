@@ -15,6 +15,7 @@
     <div class="eyebrow">driver dashboard</div>
     <h1>Your seats,<br>your schedule.</h1>
     <p class="sub">Set your availability so passengers can find and request you directly, or post a fixed route with spare seats.</p>
+    <button class="btn-secondary" id="enableNotifBtn" style="margin-top:4px;">🔔 Enable notifications</button>
   </div>
 
   <div class="card-box" style="margin-top:0;">
@@ -52,6 +53,12 @@
       <input id="pName" placeholder="Your name">
       <label for="pContact">Contact (phone, WhatsApp, etc.)</label>
       <input id="pContact" placeholder="Shown publicly to passengers">
+      <label for="pGender">Gender</label>
+      <select id="pGender">
+        <option value="unspecified">Prefer not to say</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
       <div class="err" id="profileErr"></div>
       <div class="ok" id="profileOk" style="display:none;">Profile updated</div>
       <button class="btn-primary" id="saveProfile" style="margin-top:12px;">Save profile</button>
