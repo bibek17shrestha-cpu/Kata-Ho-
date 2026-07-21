@@ -267,15 +267,19 @@ function ensureChatModal() {
   <div id="chatOverlay" class="overlay chat-modal" style="display:none;">
     <div class="modal">
       <div class="chat-header">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div class="chat-header-top">
           <span id="chatAvatar"></span>
-          <div>
+          <div style="flex:1; min-width:0;">
             <h2 id="chatWithName" style="margin:0;">Chat</h2>
             <span class="role-tag" id="chatRoleTag"></span>
           </div>
+          <button class="chat-more-btn" id="chatMoreBtn" aria-label="More options">⋯</button>
+          <div class="chat-more-menu" id="chatMoreMenu">
+            <button id="chatCompleteBtn">✓ Ride done — clear chat</button>
+          </div>
         </div>
+        <div class="chat-route-badge" id="chatRouteBadge"></div>
         <div class="contact-line" id="chatContact" style="display:none;"></div>
-        <div class="sub" id="chatRoute" style="margin:6px 0 0; font-size:13px;"></div>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-seen" id="chatSeenIndicator" style="display:none;">seen</div>
@@ -296,6 +300,26 @@ function ensureChatModal() {
   document.getElementById('chatInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendChatMessage();
   });
+  document.getElementById('chatMoreBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('chatMoreMenu').classList.toggle('show');
+  });
+  document.addEventListener('click', () => {
+    const menu = document.getElementById('chatMoreMenu');
+    if (menu) menu.classList.remove('show');
+  });
+  document.getElementById('chatCompleteBtn').addEventListener('click', async () => {
+    if (!confirm('Clear this chat from your inbox? The other person will still see it unless they clear it too.')) return;
+    await archiveConversation(chatState.conversationId);
+    closeChat();
+    if (typeof onChatArchived === 'function') onChatArchived();
+  });
+}
+
+async function archiveConversation(conversationId) {
+  try {
+    await fetch(`/api/conversations/${conversationId}/archive`, { method: 'POST' });
+  } catch (e) { /* silent */ }
 }
 
 async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherContact, otherRole, otherGender) {
@@ -314,7 +338,7 @@ async function openChat(conversationId, myId, withName, rideFrom, rideTo, otherC
   } else {
     contactEl.style.display = 'none';
   }
-  document.getElementById('chatRoute').textContent = rideFrom + ' → ' + rideTo;
+  document.getElementById('chatRouteBadge').innerHTML = `<span class="route-pt from">${esc(rideFrom)}</span><span class="route-arrow">→</span><span class="route-pt to">${esc(rideTo)}</span>`;
   document.getElementById('chatOverlay').style.display = 'flex';
   await loadChatMessages();
   await markConversationRead(conversationId);
@@ -350,9 +374,24 @@ async function loadChatMessages() {
       return;
     }
     const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-    el.innerHTML = msgs.map(m => `
-      <div class="msg ${m.senderId === chatState.myId ? 'mine' : 'theirs'}">${esc(m.body)}</div>
-    `).join('');
+
+    let lastDateLabel = null;
+    el.innerHTML = msgs.map(m => {
+      const d = new Date(m.createdAt);
+      const dateLabel = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeLabel = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      let separator = '';
+      if (dateLabel !== lastDateLabel) {
+        separator = `<div class="chat-date-sep"><span>${esc(dateLabel)}</span></div>`;
+        lastDateLabel = dateLabel;
+      }
+      return separator + `
+        <div class="msg ${m.senderId === chatState.myId ? 'mine' : 'theirs'}">
+          <div class="msg-body">${esc(m.body)}</div>
+          <div class="msg-time">${timeLabel}</div>
+        </div>
+      `;
+    }).join('');
     if (wasAtBottom || el.dataset.first !== 'done') {
       el.scrollTop = el.scrollHeight;
       el.dataset.first = 'done';

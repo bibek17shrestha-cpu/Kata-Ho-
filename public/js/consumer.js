@@ -362,17 +362,31 @@ function renderInboxList() {
   pane.innerHTML = myConvos.map(c => `
     <div class="convo-row" data-id="${c.id}" data-name="${esc(c.otherName)}" data-from="${esc(c.rideFrom)}" data-to="${esc(c.rideTo)}" data-contact="${esc(c.otherContact || '')}" data-role="${esc(c.otherRole || '')}" data-gender="${esc(c.otherGender || '')}">
       ${avatarHtml(c.otherName, c.otherRole, null, c.otherGender)}
-      <div style="flex:1;">
+      <div style="flex:1; min-width:0;">
+        <div class="convo-route-main">${esc(c.rideFrom)} <span class="route-arrow">→</span> ${esc(c.rideTo)}</div>
         <div class="convo-name">${esc(c.otherName)} <span class="role-tag ${c.otherRole === 'rider' ? 'role-driver' : 'role-passenger'}">${roleLabel(c.otherRole)}</span></div>
-        <div class="convo-route">${esc(c.rideFrom)} → ${esc(c.rideTo)}</div>
       </div>
       ${c.unreadCount > 0 ? `<span class="unread-badge">${c.unreadCount > 9 ? '9+' : c.unreadCount}</span>` : ''}
-      <span class="btn-secondary">Open chat</span>
+      <button class="convo-clear-btn" data-clear-id="${c.id}" title="Clear this chat" aria-label="Clear this chat">✕</button>
     </div>
   `).join('');
   pane.querySelectorAll('.convo-row').forEach(row => {
-    row.addEventListener('click', () => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.convo-clear-btn')) return;
       openChat(row.dataset.id, me.id, row.dataset.name, row.dataset.from, row.dataset.to, row.dataset.contact, row.dataset.role, row.dataset.gender);
     });
   });
+  pane.querySelectorAll('.convo-clear-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Clear this chat from your inbox?')) return;
+      await archiveConversation(btn.dataset.clearId);
+      await loadInbox();
+    });
+  });
+}
+
+// Called by the shared chat modal after "Ride done — clear chat" is used.
+function onChatArchived() {
+  loadInbox();
 }
