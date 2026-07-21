@@ -38,24 +38,43 @@ function newId(bytes = 8) {
 // Dead subscriptions (410/404 from the push service, e.g. uninstalled PWA)
 // are cleaned up automatically.
 async function sendPushToUser(userId, payload) {
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    return;
+  }
+
   try {
-    const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
+    const { rows } = await pool.query(
+      "SELECT * FROM push_subscriptions WHERE user_id = $1",
+      [userId]
+    );
+
     for (const sub of rows) {
       const pushSubscription = {
         endpoint: sub.endpoint,
-        keys: { p256dh: sub.p256dh, auth: sub.auth }
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
       };
+
       try {
-        await webpush.sendNotification(pushSubscription, JSON.stringify(payload));
+        await webpush.sendNotification(
+          pushSubscription,
+          JSON.stringify(payload)
+        );
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) {
-          await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
+          await pool.query(
+            "DELETE FROM push_subscriptions WHERE id = $1",
+            [sub.id]
+          );
+        } else {
+          console.error("Push send failed:", err.message);
         }
       }
     }
   } catch (err) {
-    console.error('Push send failed:', err.message);
+    console.error("Push error:", err.message);
   }
 }
 
