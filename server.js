@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const webpush = require('web-push');
 const { pool, initSchema } = require('./lib/db');
+const { sendEmail } = require('./lib/email');
 const { encrypt, decrypt } = require('./lib/crypto');
 
 const app = express();
@@ -155,6 +156,64 @@ app.post('/api/login', async (req, res, next) => {
     }
     await startSession(res, user.id);
     res.json({ user: publicUser(user) });
+  } catch (err) { next(err); }
+});
+
+// Request a password reset email. Always returns success (even if the
+// email doesn't exist) so this endpoint can't be used to check which
+// emails have accounts.
+app.post('/api/forgot-password', async (req, res, next) => {
+  try {
+    const emailNorm = String(req.body.email || '').trim().toLowerCase();
+    if (!emailNorm) return res.status(400).json({ error: 'Enter your email.' });
+
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [emailNorm]);
+    const user = rows[0];
+
+    if (user) {
+      const token = newId(24);
+      const expiresAt = Date.now() + 1000 * 60 * 60; // 1 hour
+      await pool.query(
+        'INSERT INTO password_reset_tokens (token, user_id, expires_at, created_at) VALUES ($1, $2, $3, $4)',
+        [token, user.id, expiresAt, Date.now()]
+      );
+      const resetUrl = `${req.protocol}://${req.get('host')}/reset-password.html?token=${token}`;
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your कता हो? password',
+        html: `
+          <p>Hi ${user.name},</p>
+          <p>Someone requested a password reset for your कता हो? account. If this was you, click below — this link expires in 1 hour:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        `
+      });
+    }
+
+    // Same response whether or not the account exists.
+    res.json({ ok: true, message: 'If that email has an account, a reset link has been sent.' });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Missing token or password.' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+
+    const { rows } = await pool.query('SELECT * FROM password_reset_tokens WHERE token = $1', [token]);
+    const resetToken = rows[0];
+    if (!resetToken || resetToken.used || Number(resetToken.expires_at) < Date.now()) {
+      return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+    }
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetToken.user_id]);
+    await pool.query('UPDATE password_reset_tokens SET used = true WHERE token = $1', [token]);
+    // Invalidate all existing sessions for this user as a safety measure.
+    await pool.query('DELETE FROM sessions WHERE user_id = $1', [resetToken.user_id]);
+
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 
@@ -526,7 +585,10 @@ async function enrichConversation(c, userId) {
 app.get('/api/conversations', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM conversations WHERE rider_id = $1 OR consumer_id = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM conversations
+       WHERE (rider_id = $1 AND archived_by_rider = false)
+          OR (consumer_id = $1 AND archived_by_consumer = false)
+       ORDER BY created_at DESC`,
       [req.user.id]
     );
     const enriched = await Promise.all(rows.map(c => enrichConversation(c, req.user.id)));
@@ -635,6 +697,11 @@ app.post('/api/conversations/:id/messages', requireAuth, requireConversationAcce
        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [id, req.params.id, req.user.id, bodyEncrypted, iv, authTag, now]
     );
+    // A new message un-archives the thread for the recipient — otherwise a
+    // reply could silently vanish into a hidden conversation.
+    const recipientColumn = req.convo.rider_id === req.user.id ? 'archived_by_consumer' : 'archived_by_rider';
+    await pool.query(`UPDATE conversations SET ${recipientColumn} = false WHERE id = $1`, [req.params.id]);
+
     res.status(201).json({ id, senderId: req.user.id, body, createdAt: now });
 
     const recipientId = req.convo.rider_id === req.user.id ? req.convo.consumer_id : req.convo.rider_id;
@@ -658,6 +725,16 @@ app.post('/api/conversations/:id/read', requireAuth, requireConversationAccess, 
       [req.params.id, req.user.id, now]
     );
     res.json({ ok: true, readAt: now });
+  } catch (err) { next(err); }
+});
+
+// Clears the conversation from just this user's inbox (e.g. once a ride is
+// done). The other participant still sees it until they clear it too.
+app.post('/api/conversations/:id/archive', requireAuth, requireConversationAccess, async (req, res, next) => {
+  try {
+    const column = req.convo.rider_id === req.user.id ? 'archived_by_rider' : 'archived_by_consumer';
+    await pool.query(`UPDATE conversations SET ${column} = true WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 
