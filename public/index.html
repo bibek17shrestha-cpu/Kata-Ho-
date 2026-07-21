@@ -1,474 +1,53 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>कता हो? — Find a ride</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600;700&family=Inter:wght@400;500;600&display=swap');
-
-:root{
-–bg: #0b1220;
-–bg-elevated: #121b2e;
-–bg-card: #16213a;
-–border: rgba(255,255,255,0.08);
-–border-hover: rgba(255,255,255,0.16);
-–text: #eef1f7;
-–text-dim: #8b95ab;
-–text-faint: #5c6785;
-–accent: #f0a832;
-–accent-hover: #ffbb4d;
-–accent-dim: rgba(240,168,50,0.12);
-–teal: #4fd1c5;
-–teal-dim: rgba(79,209,197,0.14);
-–danger: #ef6f6f;
-–radius: 14px;
-–radius-sm: 10px;
-}
-
-*{ box-sizing:border-box; }
-
-body{
-margin:0;
-background:
-radial-gradient(ellipse 900px 500px at 50% -10%, rgba(240,168,50,0.08), transparent),
-var(–bg);
-color:var(–text);
-font-family:‘Inter’, system-ui, sans-serif;
-min-height:100vh;
--webkit-font-smoothing:antialiased;
-}
-
-@media (prefers-reduced-motion: reduce){
-*{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
-}
-
-.wrap{ max-width:640px; margin:0 auto; padding:20px 20px 80px; }
-
-/* Header */
-.topbar{
-display:flex; align-items:center; justify-content:space-between;
-padding:8px 0 28px;
-}
-.menu-btn{
-width:40px; height:40px; border-radius:10px; border:1px solid var(–border);
-background:var(–bg-elevated); color:var(–text-dim);
-display:flex; align-items:center; justify-content:center; cursor:pointer;
-transition:border-color .15s ease;
-}
-.menu-btn:hover{ border-color:var(–border-hover); }
-.wordmark{
-font-family:‘Noto Sans Devanagari’, sans-serif;
-font-size:20px; font-weight:700; letter-spacing:0.5px;
-color:var(–text);
-padding:8px 18px; border-radius:100px;
-border:1px solid var(–border);
-background:var(–bg-elevated);
-}
-.bell{
-position:relative; width:40px; height:40px; border-radius:10px;
-border:1px solid var(–border); background:var(–bg-elevated);
-display:flex; align-items:center; justify-content:center; cursor:pointer;
-color:var(–text-dim);
-}
-.bell .dot{
-position:absolute; top:-4px; right:-4px;
-background:var(–accent); color:#1a1200;
-font-size:10px; font-weight:700;
-min-width:16px; height:16px; border-radius:100px;
-display:flex; align-items:center; justify-content:center;
-padding:0 3px;
-}
-
-/* Hero */
-.eyebrow{
-font-family:‘Space Grotesk’, sans-serif;
-text-transform:uppercase; letter-spacing:2.5px; font-size:12px;
-color:var(–accent); font-weight:600; margin:0 0 10px;
-opacity:0; animation:rise .5s ease forwards;
-}
-h1{
-font-family:‘Space Grotesk’, sans-serif;
-font-size:38px; line-height:1.12; font-weight:700; letter-spacing:-0.5px;
-margin:0 0 14px;
-opacity:0; animation:rise .55s ease forwards; animation-delay:.05s;
-}
-h1 .accent-word{ color:var(–accent); }
-.sub{
-color:var(–text-dim); font-size:15.5px; line-height:1.55; margin:0 0 32px; max-width:52ch;
-opacity:0; animation:rise .55s ease forwards; animation-delay:.1s;
-}
-
-@keyframes rise{
-from{ opacity:0; transform:translateY(10px); }
-to{ opacity:1; transform:translateY(0); }
-}
-
-/* Request card */
-.panel{
-background:var(–bg-card);
-border:1px solid var(–border);
-border-radius:var(–radius);
-padding:26px;
-margin-bottom:28px;
-opacity:0; animation:rise .5s ease forwards; animation-delay:.15s;
-}
-.panel h2{
-font-family:‘Space Grotesk’, sans-serif;
-font-size:19px; font-weight:600; margin:0 0 4px;
-}
-.panel .desc{ color:var(–text-dim); font-size:13.5px; margin:0 0 22px; line-height:1.5; }
-
-.row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
-@media (max-width:480px){ .row{ grid-template-columns:1fr; } }
-
-label{ display:block; font-size:12px; font-weight:600; color:var(–text-faint); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:7px; }
-
-input, textarea{
-width:100%;
-background:#0e1526;
-border:1.5px solid var(–border);
-border-radius:var(–radius-sm);
-padding:12px 14px;
-color:var(–text);
-font-family:‘Inter’, sans-serif;
-font-size:14.5px;
-transition:border-color .15s ease, background .15s ease;
-}
-input::placeholder, textarea::placeholder{ color:var(–text-faint); }
-input:hover, textarea:hover{ border-color:var(–border-hover); }
-input:focus, textarea:focus{
-outline:none; border-color:var(–accent);
-background:#101a30;
-box-shadow:0 0 0 3px var(–accent-dim);
-}
-textarea{ resize:vertical; min-height:64px; font-family:inherit; }
-
-.field{ margin-bottom:16px; }
-
-.hint{
-font-size:12.5px; color:var(–text-faint);
-display:flex; align-items:center; gap:6px;
-margin:2px 0 18px;
-opacity:0; max-height:0; overflow:hidden;
-transition:opacity .2s ease, max-height .2s ease, margin .2s ease;
-}
-.hint.show{ opacity:1; max-height:40px; margin:2px 0 18px; }
-.hint svg{ flex-shrink:0; }
-
-.btn{
-font-family:‘Space Grotesk’, sans-serif;
-font-weight:600; font-size:15px;
-border:none; border-radius:var(–radius-sm);
-padding:13px 20px;
-cursor:pointer;
-width:100%;
-display:flex; align-items:center; justify-content:center; gap:8px;
-transition:transform .12s ease, filter .15s ease, box-shadow .15s ease;
-}
-.btn:active{ transform:scale(0.98); }
-.btn-primary{
-background:var(–accent); color:#1a1200;
-box-shadow:0 4px 14px rgba(240,168,50,0.22);
-}
-.btn-primary:hover{ background:var(–accent-hover); box-shadow:0 6px 20px rgba(240,168,50,0.32); }
-.btn-secondary{
-background:transparent; color:var(–accent);
-border:1.5px solid var(–accent);
-}
-.btn-secondary:hover{ background:var(–accent-dim); }
-.btn:disabled{ opacity:0.4; cursor:not-allowed; filter:none !important; box-shadow:none !important; transform:none !important; }
-
-/* Section label for driver list */
-.section-head{
-display:flex; align-items:center; justify-content:space-between;
-margin:0 0 16px;
-opacity:0; animation:rise .5s ease forwards; animation-delay:.2s;
-}
-.section-head h2{
-font-family:‘Space Grotesk’, sans-serif; font-size:17px; font-weight:600; margin:0;
-display:flex; align-items:center; gap:9px;
-}
-.count-badge{
-background:var(–bg-elevated); border:1px solid var(–border);
-color:var(–text-dim); font-size:12px; font-weight:600;
-padding:2px 9px; border-radius:100px;
-}
-.sort-select{
-background:var(–bg-elevated); border:1px solid var(–border);
-color:var(–text-dim); font-size:12.5px; font-weight:500;
-padding:7px 12px; border-radius:100px; cursor:pointer;
-}
-
-/* Driver cards */
-.driver-list{ display:flex; flex-direction:column; gap:12px; }
-
-.driver-card{
-background:var(–bg-card);
-border:1px solid var(–border);
-border-radius:var(–radius);
-padding:18px;
-display:flex; gap:14px; align-items:flex-start;
-opacity:0; transform:translateY(8px);
-animation:card-in .45s ease forwards;
-transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
-}
-.driver-card:hover{
-border-color:var(–border-hover);
-transform:translateY(-2px);
-box-shadow:0 8px 24px rgba(0,0,0,0.28);
-}
-.driver-card:nth-child(1){ animation-delay:.28s; }
-.driver-card:nth-child(2){ animation-delay:.34s; }
-.driver-card:nth-child(3){ animation-delay:.4s; }
-
-@keyframes card-in{
-to{ opacity:1; transform:translateY(0); }
-}
-
-.avatar-wrap{ position:relative; flex-shrink:0; }
-.avatar{
-width:52px; height:52px; border-radius:100%;
-background:linear-gradient(135deg, #2a3654, #1a2438);
-display:flex; align-items:center; justify-content:center;
-font-size:22px;
-border:1px solid var(–border);
-}
-.pulse-ring{
-position:absolute; inset:-3px; border-radius:100%;
-border:2px solid var(–teal);
-opacity:0; animation:pulse 2.2s ease-out infinite;
-}
-@keyframes pulse{
-0%{ opacity:0.55; transform:scale(1); }
-100%{ opacity:0; transform:scale(1.35); }
-}
-
-.driver-info{ flex:1; min-width:0; }
-.driver-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px; }
-.driver-name{
-font-family:‘Space Grotesk’, sans-serif; font-weight:600; font-size:16px;
-color:var(–accent);
-}
-.status-pill{
-display:flex; align-items:center; gap:5px;
-font-size:11px; font-weight:600; letter-spacing:0.3px;
-padding:3px 9px; border-radius:100px;
-background:var(–teal-dim); color:var(–teal);
-flex-shrink:0;
-}
-.status-pill.offline{ background:rgba(139,149,171,0.12); color:var(–text-faint); }
-.status-dot{ width:6px; height:6px; border-radius:100%; background:currentColor; }
-
-.driver-meta{ color:var(–text-dim); font-size:13.5px; margin:4px 0 2px; }
-.driver-vehicle{ color:var(–text-faint); font-size:13px; }
-
-.driver-actions{ display:flex; gap:8px; margin-top:12px; }
-.btn-sm{
-font-family:‘Space Grotesk’, sans-serif; font-weight:600; font-size:13px;
-padding:8px 14px; border-radius:8px; cursor:pointer; border:none;
-transition:background .15s ease, transform .12s ease;
-}
-.btn-sm:active{ transform:scale(0.96); }
-.btn-sm-primary{ background:var(–accent); color:#1a1200; }
-.btn-sm-primary:hover{ background:var(–accent-hover); }
-.btn-sm-ghost{ background:transparent; border:1px solid var(–border); color:var(–text-dim); }
-.btn-sm-ghost:hover{ border-color:var(–border-hover); color:var(–text); }
-
-.phone-chip{
-font-size:12.5px; color:var(–text-faint);
-font-variant-numeric:tabular-nums;
-}
-
-/* toast */
-.toast{
-position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-background:var(–bg-elevated); border:1px solid var(–border-hover);
-color:var(–text); font-size:13.5px; font-weight:500;
-padding:12px 20px; border-radius:100px;
-box-shadow:0 10px 30px rgba(0,0,0,0.4);
-opacity:0; pointer-events:none;
-transition:opacity .25s ease, transform .25s ease;
-display:flex; align-items:center; gap:8px;
-z-index:100;
-}
-.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-.toast .dot-ok{ width:7px; height:7px; border-radius:100%; background:var(–teal); }
-</style>
-
+<title>कता हो? — Community Ride Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<nav class="topbar" id="nav"></nav>
 <div class="wrap">
-
-  <div class="topbar">
-    <div class="menu-btn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  <div class="hero">
+    <div class="eyebrow">कता हो? <span class="dots"></span> community ride board</div>
+    <h1>Close the gap<br>between two points.</h1>
+    <p class="sub">Drivers set their availability and vehicle info. Passengers browse the full driver directory, request a ride to anywhere, or pick a fixed posted route — then chat right in the app, fully encrypted.</p>
+    <div class="trail-hero">
+      <svg viewBox="0 0 700 56" preserveAspectRatio="none">
+        <circle cx="18" cy="40" r="5" fill="#E8A33D"/>
+        <path d="M 18 40 C 120 8, 220 50, 340 26 S 560 4, 682 18" stroke="#E8A33D" stroke-width="1.5" stroke-dasharray="1 9" stroke-linecap="round" fill="none" opacity="0.85"/>
+        <circle cx="682" cy="18" r="5" fill="#3E7CB1"/>
+      </svg>
     </div>
-    <div class="wordmark">कता हो?</div>
-    <div class="bell">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="currentColor"/></svg>
-      <span class="dot">8</span>
-    </div>
+    <div id="ctaArea" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
   </div>
 
-  <p class="eyebrow">Find a ride</p>
-  <h1>Everyone driving,<br>all in <span class="accent-word">one place.</span></h1>
-  <p class="sub">Browse every driver, see who's available right now, and request a ride to anywhere — or pick from a fixed route someone's already posted.</p>
-
-  <div class="panel">
-    <h2>Request a ride</h2>
-    <p class="desc">Send this to a specific driver below, or leave it open for any available driver to accept.</p>
-
-```
-<div class="row">
-  <div class="field">
-    <label for="from">From</label>
-    <input id="from" type="text" placeholder="Starting point" />
+  <div class="card-box">
+    <h2>How it works</h2>
+    <p class="sub" style="margin-top:8px;">
+      <b style="color:var(--marigold);">Drivers</b> set availability, list their vehicle, and accept ride requests from anyone — or post a fixed route.<br>
+      <b style="color:var(--marigold);">Passengers</b> browse every driver, request a ride to anywhere, and chat once matched.
+    </p>
   </div>
-  <div class="field">
-    <label for="to">To</label>
-    <input id="to" type="text" placeholder="Destination" />
-  </div>
+
+  <footer>no fares change hands here — just neighbours closing a gap</footer>
 </div>
-
-<div class="field">
-  <label for="note">Note (optional)</label>
-  <textarea id="note" placeholder="Number of people, timing, luggage, etc."></textarea>
-</div>
-
-<p class="hint" id="hint">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ef6f6f" stroke-width="2"/><path d="M12 8v5M12 16h.01" stroke="#ef6f6f" stroke-width="2" stroke-linecap="round"/></svg>
-  <span style="color:var(--danger)">Fill in From and To above first, then pick a driver.</span>
-</p>
-
-<button class="btn btn-primary" id="openRequestBtn">
-  Send as open request <span style="opacity:0.7; font-weight:500;">(any driver)</span>
-</button>
-```
-
-  </div>
-
-  <div class="section-head">
-    <h2>Available drivers <span class="count-badge">3</span></h2>
-    <select class="sort-select">
-      <option>Nearest first</option>
-      <option>Available first</option>
-      <option>Recently active</option>
-    </select>
-  </div>
-
-  <div class="driver-list">
-
-```
-<div class="driver-card">
-  <div class="avatar-wrap">
-    <div class="pulse-ring"></div>
-    <div class="avatar">🚗</div>
-  </div>
-  <div class="driver-info">
-    <div class="driver-top">
-      <span class="driver-name">DAKI</span>
-      <span class="status-pill"><span class="status-dot"></span>available</span>
-    </div>
-    <div class="driver-meta phone-chip">(870) 203-4350</div>
-    <div class="driver-vehicle">Mustang</div>
-    <div class="driver-actions">
-      <button class="btn-sm btn-sm-primary">Request this driver</button>
-      <button class="btn-sm btn-sm-ghost">Message</button>
-    </div>
-  </div>
-</div>
-
-<div class="driver-card">
-  <div class="avatar-wrap">
-    <div class="pulse-ring"></div>
-    <div class="avatar">🚗</div>
-  </div>
-  <div class="driver-info">
-    <div class="driver-top">
-      <span class="driver-name">RAJU</span>
-      <span class="status-pill"><span class="status-dot"></span>available</span>
-    </div>
-    <div class="driver-meta phone-chip">(981) 552-1190</div>
-    <div class="driver-vehicle">Toyota Hiace</div>
-    <div class="driver-actions">
-      <button class="btn-sm btn-sm-primary">Request this driver</button>
-      <button class="btn-sm btn-sm-ghost">Message</button>
-    </div>
-  </div>
-</div>
-
-<div class="driver-card">
-  <div class="avatar-wrap">
-    <div class="avatar" style="filter:grayscale(0.6); opacity:0.7;">🚗</div>
-  </div>
-  <div class="driver-info">
-    <div class="driver-top">
-      <span class="driver-name" style="color:var(--text-dim);">SUNITA</span>
-      <span class="status-pill offline"><span class="status-dot"></span>offline</span>
-    </div>
-    <div class="driver-meta phone-chip">(455) 720-9981</div>
-    <div class="driver-vehicle">Bolero</div>
-    <div class="driver-actions">
-      <button class="btn-sm btn-sm-ghost" disabled style="opacity:0.5; cursor:not-allowed;">Notify when online</button>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-
-</div>
-
-<div class="toast" id="toast">
-  <span class="dot-ok"></span>
-  <span id="toastMsg">Request sent</span>
-</div>
-
+<script src="js/common.js"></script>
 <script>
-  const fromEl = document.getElementById('from');
-  const toEl = document.getElementById('to');
-  const hint = document.getElementById('hint');
-  const openBtn = document.getElementById('openRequestBtn');
-  const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
-
-  function checkFields(){
-    const filled = fromEl.value.trim() && toEl.value.trim();
-    // Only show the hint once the user has interacted, not by default
-    return filled;
+(async function(){
+  const user = await getMe();
+  renderNav(user, '/');
+  const cta = document.getElementById('ctaArea');
+  if (user) {
+    cta.innerHTML = `<a class="btn-primary" style="text-decoration:none; display:inline-block;" href="${user.role === 'rider' ? '/rider.html' : '/consumer.html'}">Go to your dashboard</a>`;
+  } else {
+    cta.innerHTML = `<a class="btn-primary" style="text-decoration:none; display:inline-block;" href="/signup.html">Get started</a>
+                      <a class="btn-secondary" style="text-decoration:none; display:inline-block;" href="/login.html">Log in</a>`;
   }
-
-  function showToast(msg){
-    toastMsg.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(()=> toast.classList.remove('show'), 2600);
-  }
-
-  openBtn.addEventListener('click', () => {
-    if(!checkFields()){
-      hint.classList.add('show');
-      (!fromEl.value.trim() ? fromEl : toEl).focus();
-      return;
-    }
-    hint.classList.remove('show');
-    showToast('Open request sent to all available drivers');
-  });
-
-  [fromEl, toEl].forEach(el => {
-    el.addEventListener('input', () => {
-      if(checkFields()) hint.classList.remove('show');
-    });
-  });
-
-  document.querySelectorAll('.btn-sm-primary').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const name = e.target.closest('.driver-card').querySelector('.driver-name').textContent;
-      showToast(`Request sent to ${name.charAt(0) + name.slice(1).toLowerCase()}`);
-    });
-  });
+})();
 </script>
-
 </body>
 </html>
