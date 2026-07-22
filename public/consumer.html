@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Find a ride — कता हो?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <nav class="topbar" id="nav"></nav>
 <div class="wrap">
   <div class="hero">
-    <div class="eyebrow">find a ride</div>
+    <div class="eyebrow">find a ride<span class="dots"></span></div>
     <h1>Everyone driving,<br>all in one place.</h1>
     <p class="sub">Browse every driver, see who's available right now, and request a ride to anywhere — or pick from a fixed route someone's already posted.</p>
     <button class="btn-secondary" id="enableNotifBtn" style="margin-top:4px;">🔔 Enable notifications</button>
@@ -39,6 +39,15 @@
       <div class="err" id="reqErr"></div>
       <button class="btn-primary" id="sendOpenRequest" style="margin-top:12px;">Send as open request (any driver)</button>
     </div>
+
+    <div class="section-head">
+      <h2 style="font-size:17px;">Available drivers <span class="count-badge" id="driverCount">0</span></h2>
+      <select class="sort-select" id="driverSort">
+        <option value="available">Available first</option>
+        <option value="name">Name (A–Z)</option>
+      </select>
+    </div>
+
     <div class="loading" id="driversLoading">Loading drivers…</div>
     <div id="driversList"></div>
   </div>
