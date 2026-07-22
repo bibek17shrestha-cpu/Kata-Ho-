@@ -25,11 +25,14 @@ a{color:var(--marigold);}
 
 /* nav */
 nav.topbar{
-  display:flex; align-items:center; gap:14px; padding:18px 20px;
-  max-width:760px; margin:0 auto; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:14px; padding:18px 20px;
+  max-width:760px; margin:0 auto; border-bottom:1px solid var(--line); position:relative;
 }
 nav.topbar .brand{
   font-family:'Fraunces', serif; font-weight:700; font-size:18px; color:var(--paper); text-decoration:none;
+}
+.brand-center{
+  position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
 }
 nav.topbar .spacer{flex:1;}
 nav.topbar a, nav.topbar button{
@@ -38,6 +41,56 @@ nav.topbar a, nav.topbar button{
   border-radius:8px; cursor:pointer;
 }
 nav.topbar .user-pill{color:var(--marigold); border-color:transparent; padding:7px 4px;}
+.nav-guest-links{display:flex; gap:8px;}
+
+/* hamburger button */
+.hamburger-btn{
+  width:36px; height:36px; border:1px solid var(--line); border-radius:9px;
+  background:rgba(244,239,228,0.04); display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:5px; cursor:pointer; padding:0; flex-shrink:0;
+}
+.hamburger-btn span{
+  display:block; width:18px; height:2px; background:var(--paper); border-radius:2px;
+  transition:transform .25s ease, opacity .2s ease;
+}
+.hamburger-btn.active span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.hamburger-btn.active span:nth-child(2){opacity:0;}
+.hamburger-btn.active span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+/* side menu */
+.side-menu-overlay{
+  position:fixed; inset:0; background:rgba(14,24,48,0); pointer-events:none;
+  z-index:300; transition:background .3s ease;
+}
+.side-menu-overlay.open{background:rgba(14,24,48,0.72); pointer-events:auto;}
+.side-menu{
+  position:fixed; top:0; left:0; height:100%; width:280px; max-width:82vw;
+  background:#1B2A4A; border-right:1px solid var(--line); box-shadow:8px 0 32px rgba(0,0,0,0.4);
+  transform:translateX(-100%); transition:transform .3s cubic-bezier(.32,.72,0,1);
+  display:flex; flex-direction:column;
+}
+.side-menu-overlay.open .side-menu{transform:translateX(0);}
+.side-menu-header{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:22px 18px 18px; border-bottom:1px solid var(--line);
+}
+.side-menu-user{display:flex; align-items:center; gap:12px;}
+.side-menu-name{font-weight:700; font-size:15px;}
+.side-menu-role{font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#9FB0CC;}
+.side-menu-close{
+  width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:transparent;
+  color:#D7DEEC; font-size:14px; cursor:pointer; padding:0; flex-shrink:0;
+}
+.side-menu-items{padding:10px; display:flex; flex-direction:column; gap:2px; flex:1;}
+.side-menu-item{
+  display:flex; align-items:center; gap:12px; text-align:left; width:100%;
+  padding:13px 12px; border-radius:10px; border:none; background:transparent;
+  color:var(--paper); font-family:'Work Sans'; font-size:14.5px; font-weight:500; cursor:pointer;
+}
+.side-menu-item:hover{background:rgba(244,239,228,0.06);}
+.side-menu-icon{font-size:17px; width:22px; text-align:center;}
+.side-menu-footer{padding:10px; border-top:1px solid var(--line);}
+.side-menu-logout{color:#E39A94;}
 
 .eyebrow{
   font-family:'JetBrains Mono', monospace;
@@ -146,16 +199,54 @@ textarea{resize:vertical; min-height:64px;}
   background:rgba(244,239,228,0.03);
 }
 .convo-row:hover{border-color:rgba(244,239,228,0.35);}
-.convo-name{font-weight:600; font-size:14.5px;}
-.convo-route{font-size:12.5px; color:#9FB0CC; font-family:'JetBrains Mono',monospace;}
+.convo-route-main{
+  font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; color:var(--paper);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.convo-route-main .route-arrow{color:var(--marigold); font-family:'Work Sans'; margin:0 2px;}
+.convo-name{font-weight:500; font-size:12.5px; color:#9FB0CC; margin-top:3px;}
+.convo-clear-btn{
+  width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:transparent;
+  color:#7789A8; font-size:13px; cursor:pointer; flex-shrink:0; padding:0; line-height:1;
+}
+.convo-clear-btn:hover{border-color:#E39A94; color:#E39A94;}
 
 /* chat */
 .chat-modal .modal{ display:flex; flex-direction:column; height:78vh; max-height:640px; }
-.chat-header{padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:12px;}
-.chat-messages{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 2px;}
-.msg{max-width:78%; padding:9px 12px; border-radius:12px; font-size:14px; line-height:1.4;}
+.chat-header{padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:12px; position:relative;}
+.chat-header-top{display:flex; align-items:center; gap:10px;}
+.chat-more-btn{
+  width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:transparent;
+  color:#D7DEEC; font-size:16px; cursor:pointer; flex-shrink:0; padding:0; line-height:1;
+}
+.chat-more-menu{
+  display:none; position:absolute; top:42px; right:0; background:#1B2A4A; border:1px solid var(--line);
+  border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:60; overflow:hidden; min-width:200px;
+}
+.chat-more-menu.show{display:block;}
+.chat-more-menu button{
+  display:block; width:100%; text-align:left; padding:12px 14px; background:none; border:none;
+  color:#D7DEEC; font-family:'Work Sans'; font-size:13.5px; cursor:pointer;
+}
+.chat-more-menu button:hover{background:rgba(244,239,228,0.06);}
+.chat-route-badge{
+  margin-top:12px; display:flex; align-items:center; gap:8px; font-family:'Fraunces',serif; font-weight:600;
+  font-size:14.5px; background:rgba(232,163,61,0.1); border:1px solid rgba(232,163,61,0.3);
+  border-radius:10px; padding:8px 12px;
+}
+.chat-route-badge .route-arrow{color:var(--marigold); font-family:'Work Sans'; font-weight:400;}
+.chat-route-badge .route-pt{color:var(--paper);}
+
+.chat-messages{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:4px 2px;}
+.chat-date-sep{text-align:center; margin:14px 0 6px;}
+.chat-date-sep span{
+  font-family:'JetBrains Mono', monospace; font-size:11px; color:#7789A8; background:rgba(244,239,228,0.05);
+  padding:4px 12px; border-radius:999px;
+}
+.msg{max-width:78%; padding:9px 12px 6px; border-radius:12px; font-size:14px; line-height:1.4;}
 .msg.mine{align-self:flex-end; background:var(--marigold); color:var(--sky-deep); border-bottom-right-radius:3px;}
 .msg.theirs{align-self:flex-start; background:rgba(244,239,228,0.08); border-bottom-left-radius:3px;}
+.msg-time{font-family:'JetBrains Mono', monospace; font-size:10px; opacity:0.6; margin-top:3px; text-align:right;}
 .chat-input-row{display:flex; gap:8px; margin-top:12px;}
 .chat-input-row input{flex:1;}
 .chat-empty{color:#9FB0CC; font-size:13px; text-align:center; padding:30px 10px;}
@@ -197,15 +288,14 @@ footer{text-align:center; font-size:12px; color:#7789A8; margin-top:40px; font-f
 }
 .contact-line a:hover{text-decoration:underline;}
 
-/* avatars: color-coded by role, marigold = driver, blue = passenger */
+/* avatars: icon-coded by role — car for drivers, gendered person for passengers */
 .avatar{
   display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
-  width:40px; height:40px; border-radius:50%; font-family:'Fraunces', serif; font-weight:700;
-  font-size:17px; color:#0E1830;
+  width:40px; height:40px; border-radius:50%; font-size:19px; line-height:1;
 }
-.avatar-sm{width:30px; height:30px; font-size:13px;}
-.avatar-driver{background:var(--marigold);}
-.avatar-passenger{background:var(--flag-blue); color:#F4EFE4;}
+.avatar-sm{width:30px; height:30px; font-size:15px;}
+.avatar-driver{background:rgba(232,163,61,0.22); border:1px solid rgba(232,163,61,0.5);}
+.avatar-passenger{background:rgba(62,124,177,0.22); border:1px solid rgba(62,124,177,0.5);}
 
 .role-tag{
   font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700; text-transform:uppercase;
@@ -234,10 +324,10 @@ footer{text-align:center; font-size:12px; color:#7789A8; margin-top:40px; font-f
 .toast-item.show{opacity:1; transform:translateX(0);}
 .toast-item.toast-success{border-color:#4E8B5C;}
 
-/* nav notification bell */
+/* nav notification bell + dropdown */
 .nav-bell{
-  position:relative; font-size:16px; margin-right:6px; cursor:default;
-  display:inline-flex; align-items:center;
+  position:relative; font-size:16px; cursor:pointer;
+  display:inline-flex; align-items:center; flex-shrink:0;
 }
 .nav-bell-count{
   position:absolute; top:-6px; right:-10px; background:var(--marigold); color:var(--sky-deep);
@@ -245,5 +335,118 @@ footer{text-align:center; font-size:12px; color:#7789A8; margin-top:40px; font-f
   border-radius:999px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center;
   padding:0 4px;
 }
+.notif-dropdown{
+  display:none; position:absolute; top:32px; right:-8px; width:270px; max-height:340px; overflow-y:auto;
+  background:#1B2A4A; border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,0.4);
+  z-index:250; text-align:left;
+}
+.notif-dropdown.show{display:block;}
+.notif-item{
+  padding:12px 14px; font-size:13px; color:#D7DEEC; border-bottom:1px solid var(--line); cursor:pointer;
+}
+.notif-item:last-child{border-bottom:none;}
+.notif-item:hover{background:rgba(244,239,228,0.05);}
+.notif-item.unread{color:var(--paper); font-weight:600; position:relative; padding-left:22px;}
+.notif-item.unread::before{content:'●'; color:var(--marigold); position:absolute; left:9px; top:14px; font-size:8px;}
+.notif-empty{padding:20px 14px; font-size:13px; color:#7789A8; text-align:center;}
 
 @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+/* =========================================================================
+   UI UPGRADE ADDENDUM — animation, polish, refined states.
+   Purely additive: nothing above is removed, renamed, or overridden in a
+   way that changes layout. Uses only tokens/classes that already exist
+   above, so no HTML or JS changes are required for this file to work.
+   ========================================================================= */
+
+/* ---- entrance motion for hero + cards -------------------------------- */
+.hero .eyebrow{ opacity:0; animation: kh-rise .5s ease forwards; }
+.hero h1{ opacity:0; animation: kh-rise .55s ease forwards; animation-delay:.05s; }
+.hero .sub{ opacity:0; animation: kh-rise .55s ease forwards; animation-delay:.1s; }
+.hero #enableNotifBtn{ opacity:0; animation: kh-rise .5s ease forwards; animation-delay:.15s; }
+
+.card-box{ opacity:0; animation: kh-rise .5s ease forwards; animation-delay:.15s; }
+
+@keyframes kh-rise{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+/* Stagger cards as they render (driver directory, ride requests, listings). */
+.card{
+  opacity:0; transform:translateY(8px);
+  animation: kh-card-in .45s ease forwards;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.card:hover{
+  border-color: rgba(244,239,228,0.28);
+  transform:translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+}
+.card:nth-child(1){ animation-delay:.05s; }
+.card:nth-child(2){ animation-delay:.11s; }
+.card:nth-child(3){ animation-delay:.17s; }
+.card:nth-child(4){ animation-delay:.23s; }
+.card:nth-child(5){ animation-delay:.29s; }
+
+@keyframes kh-card-in{
+  to{ opacity:1; transform:translateY(0); }
+}
+
+.convo-row{ transition: border-color .15s ease, transform .15s ease; }
+.convo-row:active{ transform: scale(0.99); }
+
+/* ---- live "available" pulse on driver avatars -------------------------
+   No markup change needed: :has() targets the avatar inside any card
+   whose status pill carries .avail. Browsers without :has() support just
+   render statically — no breakage, only a missed enhancement. */
+.avatar-driver{ position:relative; }
+.card-top:has(.status.avail) .avatar-driver{
+  animation: kh-pulse-ring 2.2s ease-out infinite;
+}
+@keyframes kh-pulse-ring{
+  0%{ box-shadow: 0 0 0 0 rgba(232,163,61,0.45); }
+  70%{ box-shadow: 0 0 0 8px rgba(232,163,61,0); }
+  100%{ box-shadow: 0 0 0 0 rgba(232,163,61,0); }
+}
+
+/* ---- status: give available/unavailable a clearer chip look ---------- */
+.status{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:999px;
+  background: rgba(244,239,228,0.06);
+}
+.status.avail{ background: rgba(78,139,92,0.16); }
+.status.closed{ background: rgba(193,68,60,0.14); }
+
+/* ---- buttons: subtle hover lift, same colors --------------------------- */
+.btn-primary, .btn-secondary, .btn-danger{
+  transition: transform .12s ease, filter .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.btn-primary:hover{ transform:translateY(-1px); }
+.btn-secondary:hover{ transform:translateY(-1px); }
+
+/* ---- input focus: soften the outline into a glow, keep accessibility -- */
+input:focus, textarea:focus, select:focus{
+  box-shadow: 0 0 0 4px rgba(232,163,61,0.14);
+}
+
+/* ---- toolbar pills: smoother active swap ------------------------------ */
+.pill{ transition: background .15s ease, color .15s ease, border-color .15s ease; }
+
+/* ---- toggle switch: slightly springier knob ---------------------------- */
+.toggle-switch .knob{ transition: left .22s cubic-bezier(.34,1.4,.64,1), background .18s ease; }
+
+/* ---- empty states: soften in rather than pop --------------------------- */
+.empty{ opacity:0; animation: kh-rise .4s ease forwards; }
+
+/* ---- reduced motion: extend to the new animations above ---------------- */
+@media (prefers-reduced-motion: reduce){
+  .hero .eyebrow, .hero h1, .hero .sub, .hero #enableNotifBtn,
+  .card-box, .card, .empty{
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .card-top:has(.status.avail) .avatar-driver{ animation: none !important; }
+}
