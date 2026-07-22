@@ -38,43 +38,24 @@ function newId(bytes = 8) {
 // Dead subscriptions (410/404 from the push service, e.g. uninstalled PWA)
 // are cleaned up automatically.
 async function sendPushToUser(userId, payload) {
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    return;
-  }
-
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
   try {
-    const { rows } = await pool.query(
-      "SELECT * FROM push_subscriptions WHERE user_id = $1",
-      [userId]
-    );
-
+    const { rows } = await pool.query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
     for (const sub of rows) {
       const pushSubscription = {
         endpoint: sub.endpoint,
-        keys: {
-          p256dh: sub.p256dh,
-          auth: sub.auth
-        }
+        keys: { p256dh: sub.p256dh, auth: sub.auth }
       };
-
       try {
-        await webpush.sendNotification(
-          pushSubscription,
-          JSON.stringify(payload)
-        );
+        await webpush.sendNotification(pushSubscription, JSON.stringify(payload));
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) {
-          await pool.query(
-            "DELETE FROM push_subscriptions WHERE id = $1",
-            [sub.id]
-          );
-        } else {
-          console.error("Push send failed:", err.message);
+          await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [sub.id]);
         }
       }
     }
   } catch (err) {
-    console.error("Push error:", err.message);
+    console.error('Push send failed:', err.message);
   }
 }
 
@@ -540,6 +521,22 @@ app.patch('/api/ride-requests/:id', requireAuth, async (req, res, next) => {
         url: '/consumer.html'
       });
     }
+  } catch (err) { next(err); }
+});
+
+// Passenger removes a finished (declined/cancelled/completed) request from
+// their own "My requests" list. Doesn't affect the driver's view of it.
+app.delete('/api/ride-requests/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM ride_requests WHERE id = $1', [req.params.id]);
+    const request = rows[0];
+    if (!request) return res.status(404).json({ error: 'Request not found.' });
+    if (request.consumer_id !== req.user.id) return res.status(403).json({ error: 'Not your request.' });
+    if (request.status === 'pending' || request.status === 'accepted') {
+      return res.status(400).json({ error: 'Cancel or complete this request before clearing it.' });
+    }
+    await pool.query('DELETE FROM ride_requests WHERE id = $1', [req.params.id]);
+    res.status(204).end();
   } catch (err) { next(err); }
 });
 
