@@ -5,7 +5,6 @@ let myRequests = [];
 let myConvos = [];
 let seenRequestStatuses = {};
 let seenConvoMessageCounts = {};
-let driverSort = 'available'; // 'available' | 'name'
 
 (async function init() {
   me = await getMe();
@@ -89,13 +88,6 @@ async function pollForUpdates() {
     }
   } catch (e) { /* silent */ }
 
-  // Refresh driver directory quietly so availability pulses stay current.
-  try {
-    const res = await fetch('/api/drivers');
-    allDrivers = await res.json();
-    if (document.getElementById('driversPane').style.display !== 'none') renderDrivers();
-  } catch (e) { /* silent */ }
-
   setNavBellCount(notifCount);
 }
 
@@ -154,57 +146,26 @@ async function loadDrivers() {
   document.getElementById('driversLoading').style.display = 'none';
 }
 
-// Best-effort phone formatting for US-style 10-digit numbers. Anything that
-// doesn't match (WhatsApp handles, international numbers, etc.) is shown
-// as-is rather than mangled.
-function formatContact(raw) {
-  if (!raw) return '';
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-  }
-  if (digits.length === 11 && digits[0] === '1') {
-    return `+1 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
-  }
-  return raw;
-}
-
-function sortedDrivers() {
-  const list = [...allDrivers];
-  if (driverSort === 'name') {
-    list.sort((a, b) => a.name.localeCompare(b.name));
-  } else {
-    list.sort((a, b) => (b.isAvailable - a.isAvailable) || a.name.localeCompare(b.name));
-  }
-  return list;
-}
-
 function renderDrivers() {
   const list = document.getElementById('driversList');
-  const countEl = document.getElementById('driverCount');
-  if (countEl) countEl.textContent = allDrivers.length;
-
   if (allDrivers.length === 0) {
     list.innerHTML = `<div class="empty">No drivers have signed up yet.</div>`;
     return;
   }
-
-  list.innerHTML = sortedDrivers().map(d => `
-    <div class="card driver-card ${d.isAvailable ? '' : 'driver-card-offline'}">
+  list.innerHTML = allDrivers.map(d => `
+    <div class="card">
       <div class="card-top">
         <div style="display:flex; align-items:center; gap:10px;">
           ${avatarHtml(d.name, 'rider')}
           <span class="rider-name">${esc(d.name)}</span>
         </div>
-        <span class="status ${d.isAvailable ? 'avail' : 'closed'}">${d.isAvailable ? '● available' : '○ offline'}</span>
+        <span class="status ${d.isAvailable ? 'avail' : 'closed'}">${d.isAvailable ? '● available' : '○ not available'}</span>
       </div>
-      ${d.contact ? `<div class="contact-line"><a href="tel:${esc(d.contact)}">${esc(formatContact(d.contact))}</a></div>` : ''}
+      ${d.contact ? `<div class="contact-line"><a href="tel:${esc(d.contact)}">${esc(d.contact)}</a></div>` : ''}
       ${d.vehicleInfo ? `<div class="note">${esc(d.vehicleInfo)}</div>` : ''}
       <div class="card-foot">
         <div class="actions">
-          ${d.isAvailable
-            ? `<button class="btn-primary" data-action="request-driver" data-id="${d.id}" data-name="${esc(d.name)}">Request this driver</button>`
-            : `<button class="btn-secondary" data-action="request-driver" data-id="${d.id}" data-name="${esc(d.name)}">Request anyway</button>`}
+          <button class="btn-primary" data-action="request-driver" data-id="${d.id}" data-name="${esc(d.name)}">Request this driver</button>
         </div>
       </div>
     </div>
@@ -217,11 +178,8 @@ document.getElementById('driversList').addEventListener('click', (e) => {
   const from = document.getElementById('rFrom').value.trim();
   const to = document.getElementById('rTo').value.trim();
   if (!from || !to) {
-    const errEl = document.getElementById('reqErr');
-    errEl.textContent = 'Fill in From and To above first, then pick a driver.';
-    errEl.classList.add('show');
+    document.getElementById('reqErr').textContent = 'Fill in From and To above first, then pick a driver.';
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.getElementById('rFrom').focus();
     return;
   }
   sendRideRequest({ driverId: btn.dataset.id });
@@ -231,28 +189,14 @@ document.getElementById('sendOpenRequest').addEventListener('click', () => {
   sendRideRequest({ driverId: null });
 });
 
-// Clear the validation hint as soon as both fields are filled, rather than
-// leaving stale red text on screen after the user fixes it.
-['rFrom', 'rTo'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    const from = document.getElementById('rFrom').value.trim();
-    const to = document.getElementById('rTo').value.trim();
-    if (from && to) {
-      const errEl = document.getElementById('reqErr');
-      errEl.textContent = '';
-      errEl.classList.remove('show');
-    }
-  });
-});
-
 async function sendRideRequest({ driverId }) {
   const from = document.getElementById('rFrom').value.trim();
   const to = document.getElementById('rTo').value.trim();
   const note = document.getElementById('rNote').value.trim();
   const errEl = document.getElementById('reqErr');
-  errEl.textContent = ''; errEl.classList.remove('show');
+  errEl.textContent = '';
 
-  if (!from || !to) { errEl.textContent = 'From and To are required.'; errEl.classList.add('show'); return; }
+  if (!from || !to) { errEl.textContent = 'From and To are required.'; return; }
 
   try {
     const res = await fetch('/api/ride-requests', {
@@ -266,11 +210,9 @@ async function sendRideRequest({ driverId }) {
     document.getElementById('rTo').value = '';
     document.getElementById('rNote').value = '';
     renderMyRequests();
-    showToast(driverId ? 'Request sent to driver' : 'Open request sent to all available drivers', 'success');
     document.querySelector('.pill[data-tab="requests"]').click();
   } catch (e) {
     errEl.textContent = e.message;
-    errEl.classList.add('show');
   }
 }
 
@@ -308,6 +250,7 @@ function renderMyRequests() {
         <div class="actions">
           ${r.status === 'accepted' ? `<button class="btn-primary" data-action="chat-request" data-id="${r.id}">Open chat</button>` : ''}
           ${r.status === 'pending' ? `<button class="btn-danger" data-action="cancel" data-id="${r.id}">Cancel</button>` : ''}
+          ${r.status === 'declined' || r.status === 'cancelled' || r.status === 'completed' ? `<button class="btn-secondary" data-action="clear" data-id="${r.id}">Clear</button>` : ''}
         </div>
       </div>
     </div>
@@ -324,6 +267,18 @@ document.getElementById('requestsPane').addEventListener('click', async (e) => {
       body: JSON.stringify({ status: 'cancelled' })
     });
     await loadMyRequests();
+  } else if (btn.dataset.action === 'clear') {
+    try {
+      const res = await fetch('/api/ride-requests/' + id, { method: 'DELETE' });
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json();
+        throw new Error(data.error || 'Could not clear this request.');
+      }
+      myRequests = myRequests.filter(r => r.id !== id);
+      renderMyRequests();
+    } catch (err) {
+      alert(err.message);
+    }
   } else if (btn.dataset.action === 'chat-request') {
     try {
       const res = await fetch('/api/conversations/from-request', {
@@ -447,13 +402,4 @@ function renderInboxList() {
 // Called by the shared chat modal after "Ride done — clear chat" is used.
 function onChatArchived() {
   loadInbox();
-}
-
-// --- driver sort control ---
-const sortSelect = document.getElementById('driverSort');
-if (sortSelect) {
-  sortSelect.addEventListener('change', () => {
-    driverSort = sortSelect.value;
-    renderDrivers();
-  });
 }

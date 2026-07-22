@@ -16,7 +16,7 @@ function renderNav(user, activeBrandHref) {
   const brandHref = activeBrandHref || (user ? (user.role === 'rider' ? '/rider.html' : '/consumer.html') : '/');
 
   nav.innerHTML = `
-    ${user ? `<button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu"><span></span><span></span><span></span></button>` : `<div style="width:40px;"></div>`}
+    ${user ? `<button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu"><span></span><span></span><span></span></button>` : `<div style="width:36px;"></div>`}
     <a class="brand brand-center" href="${brandHref}">कता हो?</a>
     ${user
       ? `<span class="nav-bell" id="navBell" style="display:none;">🔔<span class="nav-bell-count" id="navBellCount">0</span>
@@ -195,8 +195,8 @@ function esc(s) {
 }
 
 // role: 'rider' (driver) or 'consumer' (passenger). Drivers always show a
-// car icon. Passengers show a gendered emoji based on their profile gender
-// — falls back to a neutral person icon if unspecified.
+// car icon (marigold background). Passengers show a gendered emoji based on
+// their profile gender — falls back to a neutral person icon if unspecified.
 function avatarHtml(name, role, size, gender) {
   let icon;
   if (role === 'rider') {
@@ -225,13 +225,11 @@ function fmtDate(dateStr, timeStr) {
   return timeOut ? dateOut + ' · ' + timeOut : dateOut;
 }
 
-// Route line SVG — colors match the new theme tokens (marigold accent to
-// teal), used inside ride/request cards.
 function trailSvg() {
   return `<svg viewBox="0 0 200 14" preserveAspectRatio="none">
-    <circle cx="4" cy="7" r="3" fill="#f0a832"/>
-    <line x1="4" y1="7" x2="196" y2="7" stroke="#f0a832" stroke-width="1.3" stroke-dasharray="1 7" stroke-linecap="round" opacity="0.6"/>
-    <circle cx="196" cy="7" r="3" fill="#4fd1c5"/>
+    <circle cx="4" cy="7" r="3" fill="#E8A33D"/>
+    <line x1="4" y1="7" x2="196" y2="7" stroke="#E8A33D" stroke-width="1.3" stroke-dasharray="1 7" stroke-linecap="round" opacity="0.75"/>
+    <circle cx="196" cy="7" r="3" fill="#3E7CB1"/>
   </svg>`;
 }
 
@@ -433,6 +431,10 @@ async function sendChatMessage() {
 }
 
 // ---- push notifications ---------------------------------------------
+// Real phone/OS-level notifications with sound, delivered even when the
+// tab or browser is closed. Requires the person to tap "Enable
+// notifications" once (browsers require a user gesture + explicit
+// permission — this can't be turned on silently).
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
