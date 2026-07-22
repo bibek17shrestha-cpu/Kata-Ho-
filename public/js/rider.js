@@ -17,7 +17,6 @@ let seenConvoMessageCounts = {};
   await loadIncomingRequests();
   await loadMyRides();
   await loadInbox();
-  // seed "seen" state so we only notify on things that happen *after* first load
   seenRequestIds = new Set(incomingRequests.map(r => r.id));
   await primeSeenMessageCounts();
   setInterval(pollForUpdates, 5000);
@@ -74,7 +73,6 @@ async function pollForUpdates() {
     }
     myConvos = fresh;
     if (document.getElementById('inboxPane').style.display !== 'none') {
-      // re-render without disrupting an open chat
       if (!document.getElementById('chatOverlay') || document.getElementById('chatOverlay').style.display !== 'flex') {
         renderInboxList();
       }
@@ -159,9 +157,10 @@ document.getElementById('availToggle').addEventListener('click', async () => {
       body: JSON.stringify({ isAvailable: next })
     });
     if (!res.ok) throw new Error('failed');
+    showToast(next ? "You're visible to passengers now" : "You're now hidden from passengers", next ? 'success' : undefined);
   } catch (e) {
     setAvailToggle(!next); // revert on failure
-    alert('Could not update availability. Please try again.');
+    showToast('Could not update availability. Please try again.');
   }
 });
 
@@ -180,7 +179,7 @@ document.getElementById('saveVehicle').addEventListener('click', async () => {
     savedMsg.style.display = 'block';
     setTimeout(() => { savedMsg.style.display = 'none'; }, 2000);
   } catch (e) {
-    alert('Could not save vehicle info. Please try again.');
+    showToast('Could not save vehicle info. Please try again.');
   }
   btn.disabled = false; btn.textContent = 'Save vehicle info';
 });
@@ -252,7 +251,7 @@ document.getElementById('requestsPane').addEventListener('click', async (e) => {
     await loadIncomingRequests();
     await loadInbox();
   } catch (err) {
-    alert(err.message || 'Something went wrong.');
+    showToast(err.message || 'Something went wrong.');
     btn.disabled = false;
   }
 });
@@ -279,7 +278,7 @@ function renderMyRides() {
     <div class="card">
       <div class="card-top">
         <span class="rider-name">${r.seats} seat${r.seats == 1 ? '' : 's'} free</span>
-        <span class="status ${r.status === 'closed' ? 'closed' : ''}">${r.status === 'closed' ? '● closed' : '○ open'}</span>
+        <span class="status ${r.status === 'closed' ? 'closed' : ''}">${r.status === 'closed' ? 'closed' : 'open'}</span>
       </div>
       <div class="route">
         <div class="place">${esc(r.from)}</div>
@@ -363,7 +362,6 @@ function renderInboxList() {
   });
 }
 
-// Called by the shared chat modal after "Ride done — clear chat" is used.
 function onChatArchived() {
   loadInbox();
 }
@@ -405,6 +403,7 @@ document.getElementById('submitPost').addEventListener('click', async () => {
     document.getElementById('postOverlay').style.display = 'none';
     ['fFrom','fTo','fDate','fTime','fNote'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fSeats').value = 1;
+    showToast('Route posted', 'success');
   } catch (e) {
     errEl.textContent = e.message;
   }
