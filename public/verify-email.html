@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify email — कता हो?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap-narrow">
+  <div class="card-box" style="text-align:center;">
+    <h2 id="statusTitle">Verifying…</h2>
+    <p class="sub" id="statusText" style="margin-top:8px;">Hang on a moment.</p>
+    <a class="btn-primary" id="continueBtn" style="display:none; text-decoration:none; margin-top:10px;" href="/">Continue</a>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script>
+(async function(){
+  const user = await getMe();
+  renderNav(user);
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const titleEl = document.getElementById('statusTitle');
+  const textEl = document.getElementById('statusText');
+  const btn = document.getElementById('continueBtn');
+
+  if (!token) {
+    titleEl.textContent = 'Missing token';
+    textEl.textContent = 'This verification link is incomplete.';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    titleEl.textContent = 'Email verified!';
+    textEl.textContent = 'Your account is now verified.';
+    btn.href = user ? (user.role === 'rider' ? '/rider.html' : '/consumer.html') : '/login.html';
+    btn.style.display = 'inline-block';
+  } catch (e) {
+    titleEl.textContent = 'Verification failed';
+    textEl.textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>

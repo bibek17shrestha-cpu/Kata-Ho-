@@ -61,6 +61,18 @@ nav.topbar a:hover, nav.topbar button:hover{border-color:var(--violet-light); co
 nav.topbar .user-pill{color:var(--gold); border-color:transparent; padding:7px 4px;}
 .nav-guest-links{display:flex; gap:8px;}
 
+.verify-banner{
+  display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
+  background:linear-gradient(120deg, rgba(255,200,87,0.16), rgba(255,92,138,0.1));
+  border-bottom:1px solid rgba(255,200,87,0.3); padding:10px 20px; font-size:13px; color:var(--paper);
+  text-align:center;
+}
+.verify-banner button{
+  font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--gold); background:transparent;
+  border:1px solid rgba(255,200,87,0.5); padding:5px 12px; border-radius:8px; cursor:pointer; transition:all .2s ease;
+}
+.verify-banner button:hover{background:rgba(255,200,87,0.14);}
+
 /* hamburger button */
 .hamburger-btn{
   width:38px; height:38px; border:1px solid var(--line); border-radius:11px;
