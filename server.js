@@ -425,6 +425,10 @@ app.post('/api/ride-requests', requireAuth, async (req, res, next) => {
     if (driverId) {
       const driver = await findUserById(driverId);
       if (!driver || driver.role !== 'rider') return res.status(400).json({ error: 'Invalid driver selected.' });
+      const { rows: profileRows } = await pool.query('SELECT is_available FROM driver_profiles WHERE user_id = $1', [driverId]);
+      if (!profileRows[0] || !profileRows[0].is_available) {
+        return res.status(400).json({ error: 'This driver is not currently available.' });
+      }
     }
 
     const id = newId(6);
@@ -713,11 +717,6 @@ app.post('/api/conversations/:id/messages', requireAuth, requireConversationAcce
        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [id, req.params.id, req.user.id, bodyEncrypted, iv, authTag, now]
     );
-    // A new message un-archives the thread for the recipient — otherwise a
-    // reply could silently vanish into a hidden conversation.
-    const recipientColumn = req.convo.rider_id === req.user.id ? 'archived_by_consumer' : 'archived_by_rider';
-    await pool.query(`UPDATE conversations SET ${recipientColumn} = false WHERE id = $1`, [req.params.id]);
-
     res.status(201).json({ id, senderId: req.user.id, body, createdAt: now });
 
     const recipientId = req.convo.rider_id === req.user.id ? req.convo.consumer_id : req.convo.rider_id;
@@ -744,12 +743,11 @@ app.post('/api/conversations/:id/read', requireAuth, requireConversationAccess, 
   } catch (err) { next(err); }
 });
 
-// Clears the conversation from just this user's inbox (e.g. once a ride is
-// done). The other participant still sees it until they clear it too.
+// Deletes the conversation and all its messages entirely — gone for both
+// participants, not just the person who cleared it.
 app.post('/api/conversations/:id/archive', requireAuth, requireConversationAccess, async (req, res, next) => {
   try {
-    const column = req.convo.rider_id === req.user.id ? 'archived_by_rider' : 'archived_by_consumer';
-    await pool.query(`UPDATE conversations SET ${column} = true WHERE id = $1`, [req.params.id]);
+    await pool.query('DELETE FROM conversations WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (err) { next(err); }
 });
