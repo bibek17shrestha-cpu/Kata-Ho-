@@ -60,7 +60,7 @@ async function sendPushToUser(userId, payload) {
 }
 
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role, contact: u.contact, gender: u.gender };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, contact: u.contact, gender: u.gender, emailVerified: u.email_verified };
 }
 
 async function findUserById(id) {
@@ -142,6 +142,26 @@ app.post('/api/signup', async (req, res, next) => {
     await startSession(res, id);
     const user = await findUserById(id);
     res.status(201).json({ user: publicUser(user) });
+
+    // Send verification email — best effort, doesn't block signup if it fails.
+    const verifyToken = newId(24);
+    const verifyExpires = Date.now() + 1000 * 60 * 60 * 24; // 24 hours
+    pool.query(
+      'INSERT INTO email_verification_tokens (token, user_id, expires_at, created_at) VALUES ($1, $2, $3, $4)',
+      [verifyToken, id, verifyExpires, Date.now()]
+    ).then(() => {
+      const verifyUrl = `${req.protocol}://${req.get('host')}/verify-email.html?token=${verifyToken}`;
+      sendEmail({
+        to: emailNorm,
+        subject: 'Verify your कता हो? account',
+        html: `
+          <p>Hi ${user.name},</p>
+          <p>Welcome to कता हो?! Please verify your email address:</p>
+          <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+          <p>This link expires in 24 hours.</p>
+        `
+      });
+    }).catch(err => console.error('Failed to create verification token:', err.message));
   } catch (err) { next(err); }
 });
 
@@ -213,6 +233,49 @@ app.post('/api/reset-password', async (req, res, next) => {
     // Invalidate all existing sessions for this user as a safety measure.
     await pool.query('DELETE FROM sessions WHERE user_id = $1', [resetToken.user_id]);
 
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/verify-email', async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Missing token.' });
+
+    const { rows } = await pool.query('SELECT * FROM email_verification_tokens WHERE token = $1', [token]);
+    const verifyToken = rows[0];
+    if (!verifyToken || verifyToken.used || Number(verifyToken.expires_at) < Date.now()) {
+      return res.status(400).json({ error: 'This verification link is invalid or has expired.' });
+    }
+
+    await pool.query('UPDATE users SET email_verified = true WHERE id = $1', [verifyToken.user_id]);
+    await pool.query('UPDATE email_verification_tokens SET used = true WHERE token = $1', [token]);
+
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/resend-verification', requireAuth, async (req, res, next) => {
+  try {
+    if (req.user.email_verified) return res.json({ ok: true, message: 'Already verified.' });
+
+    const verifyToken = newId(24);
+    const verifyExpires = Date.now() + 1000 * 60 * 60 * 24;
+    await pool.query(
+      'INSERT INTO email_verification_tokens (token, user_id, expires_at, created_at) VALUES ($1, $2, $3, $4)',
+      [verifyToken, req.user.id, verifyExpires, Date.now()]
+    );
+    const verifyUrl = `${req.protocol}://${req.get('host')}/verify-email.html?token=${verifyToken}`;
+    await sendEmail({
+      to: req.user.email,
+      subject: 'Verify your कता हो? account',
+      html: `
+        <p>Hi ${req.user.name},</p>
+        <p>Please verify your email address:</p>
+        <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+        <p>This link expires in 24 hours.</p>
+      `
+    });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });
@@ -744,9 +807,14 @@ app.post('/api/conversations/:id/read', requireAuth, requireConversationAccess, 
 });
 
 // Deletes the conversation and all its messages entirely — gone for both
-// participants, not just the person who cleared it.
+// participants. If this conversation came from a ride request, that
+// request is deleted too, so it doesn't linger in the passenger's "My
+// requests" list after the ride is done.
 app.post('/api/conversations/:id/archive', requireAuth, requireConversationAccess, async (req, res, next) => {
   try {
+    if (req.convo.ride_request_id) {
+      await pool.query('DELETE FROM ride_requests WHERE id = $1', [req.convo.ride_request_id]);
+    }
     await pool.query('DELETE FROM conversations WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (err) { next(err); }
