@@ -33,7 +33,41 @@ function renderNav(user, activeBrandHref) {
     const bell = document.getElementById('navBell');
     bell.addEventListener('click', (e) => { e.stopPropagation(); toggleNotifDropdown(); });
     document.addEventListener('click', () => { closeNotifDropdown(); });
+
+    if (user.emailVerified === false) showVerifyBanner();
+  } else {
+    removeVerifyBanner();
   }
+}
+
+function showVerifyBanner() {
+  if (document.getElementById('verifyBanner')) return;
+  const nav = document.getElementById('nav');
+  if (!nav || !nav.parentNode) return;
+  const banner = document.createElement('div');
+  banner.id = 'verifyBanner';
+  banner.className = 'verify-banner';
+  banner.innerHTML = `
+    <span>Please verify your email to secure your account.</span>
+    <button id="resendVerifyBtn">Resend email</button>
+  `;
+  nav.insertAdjacentElement('afterend', banner);
+  document.getElementById('resendVerifyBtn').addEventListener('click', async (e) => {
+    const btn = e.target;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      await fetch('/api/resend-verification', { method: 'POST' });
+      btn.textContent = 'Sent!';
+    } catch (err) {
+      btn.textContent = 'Failed — try again';
+      btn.disabled = false;
+    }
+  });
+}
+
+function removeVerifyBanner() {
+  const banner = document.getElementById('verifyBanner');
+  if (banner) banner.remove();
 }
 
 // ---- hamburger side menu ---------------------------------------------
@@ -434,7 +468,14 @@ async function sendChatMessage() {
 // Real phone/OS-level notifications with sound, delivered even when the
 // tab or browser is closed. Requires the person to tap "Enable
 // notifications" once (browsers require a user gesture + explicit
-// permission — this can't be turned on silently).
+// permission — this can't be turned on silently). The service worker
+// itself, though, registers automatically on every page load (harmless,
+// and keeps it ready/updated so already-subscribed users keep getting
+// push reliably in the background without needing to click anything again).
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => { /* silent */ });
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
