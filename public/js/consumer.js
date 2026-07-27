@@ -402,4 +402,5 @@ function renderInboxList() {
 // Called by the shared chat modal after "Ride done — clear chat" is used.
 function onChatArchived() {
   loadInbox();
+  loadMyRequests();
 }
