@@ -356,7 +356,7 @@ function renderInboxList() {
   pane.querySelectorAll('.convo-clear-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm('Clear this chat from your inbox?')) return;
+      if (!confirm('Delete this chat for both of you? This cannot be undone.')) return;
       await archiveConversation(btn.dataset.clearId);
       await loadInbox();
     });

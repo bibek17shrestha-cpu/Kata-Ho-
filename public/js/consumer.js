@@ -165,7 +165,7 @@ function renderDrivers() {
       ${d.vehicleInfo ? `<div class="note">${esc(d.vehicleInfo)}</div>` : ''}
       <div class="card-foot">
         <div class="actions">
-          <button class="btn-primary" data-action="request-driver" data-id="${d.id}" data-name="${esc(d.name)}">Request this driver</button>
+          <button class="btn-primary" data-action="request-driver" data-id="${d.id}" data-name="${esc(d.name)}" ${d.isAvailable ? '' : 'disabled'}>${d.isAvailable ? 'Request this driver' : 'Currently unavailable'}</button>
         </div>
       </div>
     </div>
@@ -392,7 +392,7 @@ function renderInboxList() {
   pane.querySelectorAll('.convo-clear-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm('Clear this chat from your inbox?')) return;
+      if (!confirm('Delete this chat for both of you? This cannot be undone.')) return;
       await archiveConversation(btn.dataset.clearId);
       await loadInbox();
     });

@@ -275,7 +275,7 @@ function ensureChatModal() {
           </div>
           <button class="chat-more-btn" id="chatMoreBtn" aria-label="More options">⋯</button>
           <div class="chat-more-menu" id="chatMoreMenu">
-            <button id="chatCompleteBtn">✓ Ride done — clear chat</button>
+            <button id="chatCompleteBtn">✓ Ride done — delete chat</button>
           </div>
         </div>
         <div class="chat-route-badge" id="chatRouteBadge"></div>
@@ -309,7 +309,7 @@ function ensureChatModal() {
     if (menu) menu.classList.remove('show');
   });
   document.getElementById('chatCompleteBtn').addEventListener('click', async () => {
-    if (!confirm('Clear this chat from your inbox? The other person will still see it unless they clear it too.')) return;
+    if (!confirm('Delete this chat for both of you? This cannot be undone.')) return;
     await archiveConversation(chatState.conversationId);
     closeChat();
     if (typeof onChatArchived === 'function') onChatArchived();
