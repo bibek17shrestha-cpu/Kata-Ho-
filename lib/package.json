@@ -1,0 +1,19 @@
+{
+  "name": "kata-ho",
+  "version": "4.0.0",
+  "description": "Kata Ho - ride matching with driver directory, availability, ride requests, encrypted chat, read receipts, and push notifications, backed by Postgres.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cookie-parser": "^1.4.6",
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.13.1",
+    "web-push": "^3.6.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
