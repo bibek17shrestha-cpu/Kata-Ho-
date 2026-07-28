@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find a ride — कता हो?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="topbar" id="nav"></nav>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">find a ride</div>
+    <h1>Everyone driving,<br>all in one place.</h1>
+    <p class="sub">Browse every driver, see who's available right now, and request a ride to anywhere — or pick from a fixed route someone's already posted.</p>
+    <button class="btn-secondary" id="enableNotifBtn" style="margin-top:4px;">🔔 Enable notifications</button>
+  </div>
+
+  <div class="toolbar" style="display:none;">
+    <button class="pill active" data-tab="drivers">All drivers</button>
+    <button class="pill" data-tab="browse">Fixed routes</button>
+    <button class="pill" data-tab="requests">My requests</button>
+    <button class="pill" data-tab="inbox">My chats</button>
+    <button class="pill" data-tab="profile">Profile</button>
+  </div>
+
+  <div id="driversPane">
+    <div class="card-box" style="margin-top:0;">
+      <h2>Request a ride</h2>
+      <div class="sub" style="margin:6px 0 14px; font-size:13.5px;">Send this to a specific driver below, or leave it open for any available driver to accept.</div>
+      <div class="row2">
+        <div><label for="rFrom">From</label><input id="rFrom" placeholder="Starting point"></div>
+        <div><label for="rTo">To</label><input id="rTo" placeholder="Destination"></div>
+      </div>
+      <label for="rNote">Note (optional)</label>
+      <textarea id="rNote" placeholder="Number of people, timing, luggage, etc."></textarea>
+      <div class="err" id="reqErr"></div>
+      <button class="btn-primary" id="sendOpenRequest" style="margin-top:12px;">Send as open request (any driver)</button>
+    </div>
+    <div class="loading" id="driversLoading">Loading drivers…</div>
+    <div id="driversList"></div>
+  </div>
+
+  <div id="browsePane" style="display:none;"><div class="loading">Loading…</div></div>
+  <div id="requestsPane" style="display:none;"><div class="loading">Loading…</div></div>
+  <div id="inboxPane" style="display:none;"><div class="loading">Loading…</div></div>
+
+  <div id="profilePane" style="display:none;">
+    <div class="card-box" style="margin-top:0;">
+      <h2>Your profile</h2>
+      <div class="sub" style="margin:6px 0 14px; font-size:13.5px;">Your contact is only shared with a driver once you're chatting — not shown publicly.</div>
+      <label for="pName">Name</label>
+      <input id="pName" placeholder="Your name">
+      <label for="pContact">Contact (phone, WhatsApp, etc.)</label>
+      <input id="pContact" placeholder="Shown to the driver you chat with">
+      <label for="pGender">Gender</label>
+      <select id="pGender">
+        <option value="unspecified">Prefer not to say</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+      <div class="err" id="profileErr"></div>
+      <div class="ok" id="profileOk" style="display:none;">Profile updated</div>
+      <button class="btn-primary" id="saveProfile" style="margin-top:12px;">Save profile</button>
+    </div>
+  </div>
+
+  <footer>no fares change hands here — just neighbours closing a gap</footer>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/consumer.js"></script>
+</body>
+</html>
